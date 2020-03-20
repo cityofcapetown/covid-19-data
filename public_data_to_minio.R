@@ -241,7 +241,7 @@ global_latest_data <- left_join(global_latest_data, global_country_stats_fixed_n
 global_latest_data <- drop_na(global_latest_data) 
 global_latest_data <- global_latest_data %>% 
   mutate(incidence_per_1m = round((confirmed / population)*10^6, 2), 
-         mortality_per_10m = round((deaths / population)*10^7, 2),
+         mortality_per_1m = round((deaths / population)*10^6, 2),
          case_fatality_rate_pct = round((deaths / confirmed)*10^2, 2),
          maturity = if_else(confirmed < 101, "0 - 100",
                             if_else(confirmed > 100 & confirmed < 1001, "100 - 1000",
