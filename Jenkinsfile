@@ -1,7 +1,7 @@
 #!/usr/bin/env groovy
 
 podTemplate(containers: [
-    containerTemplate(name: 'cct-airflow', image: 'cityofcapetown/airflow', command: "cat", ttyEnabled: true, livenessProbe: containerLivenessProbe(initialDelaySeconds: 120))
+    containerTemplate(name: 'cct-airflow', image: 'cityofcapetown/airflow', command: "cat", ttyEnabled: true, livenessProbe: containerLivenessProbe(initialDelaySeconds: 120)),
     containerTemplate(name: 'cct-datascience-python', image: 'cityofcapetown/datascience:python', ttyEnabled: true, command: 'cat')
   ]) {
     node(POD_LABEL) {
