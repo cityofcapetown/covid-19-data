@@ -58,7 +58,7 @@ k8s_run_args = {
 }
 
 
-def covid_19_data_task(task_name, task_kwargs):
+def covid_19_data_task(task_name, task_kwargs={}):
     """Factory for k8sPodOperator"""
     name = "covid-19-media-data-{}".format(task_name)
     run_args = {**k8s_run_args.copy(), **task_kwargs}
