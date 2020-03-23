@@ -21,8 +21,7 @@ podTemplate(containers: [
             container('cct-airflow') {
                 sh '''#!/usr/bin/env bash
                   set -e
-                  python dags/income-data-dag.py
-                  python dags/media-data-dag.py
+                  ./tests/test-dags.sh
                   '''
             }
             updateGitlabCommitStatus name: 'dags-validate', state: 'success'
