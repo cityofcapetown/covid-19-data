@@ -95,7 +95,7 @@ if __name__ == "__main__":
     secrets = json.load(open(secrets_path))
     
     BUCKET = 'covid'
-    RESTRICTED_PREFIX = "data/restricted/"
+    RESTRICTED_PREFIX = "data/private/"
     MINIO_FILENAME = "{}TOTAL ISU.xls".format(RESTRICTED_PREFIX)
     for raw_datafile in get_raw_finance_file(secrets["minio"]["edge"]["access"],
                                              secrets["minio"]["edge"]["secret"],
@@ -110,7 +110,7 @@ if __name__ == "__main__":
         logging.info("Writing out to CSV...")
         CSV_FILENAME = "income_totals.csv"
         for output_csvfile in get_csv_file(filtered_df, CSV_FILENAME):
-            logging.debug("Uploading '{}' to minio://covid/data/restricted/".format(output_csvfile))
+            logging.debug("Uploading '{}' to minio://covid/{}".format(output_csvfile, RESTRICTED_PREFIX))
 
             logging.info("Writing to Minio...")
             minio_utils.file_to_minio(

@@ -88,9 +88,9 @@ if __name__ == "__main__":
     filtered_items = filter_account(account, SUBJECT_FILTER)
     
     BUCKET = 'covid'
-    RESTRICTED_PREFIX = "data/restricted/"
+    RESTRICTED_PREFIX = "data/private/"
     for attachment_path in get_attachment_file(filtered_items):
-        logging.debug("Uploading '{}' to minio://covid/data/restricted/".format(attachment_path))
+        logging.debug("Uploading '{}' to minio://covid/{}".format(attachment_path, RESTRICTED_PREFIX))
         
         minio_utils.file_to_minio(
             filename=attachment_path,
