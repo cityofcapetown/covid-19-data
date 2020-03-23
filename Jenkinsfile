@@ -33,7 +33,6 @@ podTemplate(containers: [
                         set -e
                         cd dags
                         for file in $(ls *.py); do
-                            file=income-data-dag.py
                             bucket=opm-dags
                             resource="/${bucket}/${file}"
                             contentType="application/octet-stream"
