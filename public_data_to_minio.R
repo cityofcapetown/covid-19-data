@@ -281,23 +281,8 @@ rsa_timeseries_deaths <- read_csv(
 write_csv(rsa_timeseries_deaths, "data/public/covid19za_timeline_deaths.csv")
 
 #r rsa_provincial_ts_confirmed ------------------
-rsa_ts_confirmed <- rsa_timeseries_confirmed %>%  
-  select(YYYYMMDD, province) %>% 
-  mutate(count = 1) %>% 
-  group_by(YYYYMMDD) %>% 
-  summarise(confirmed = sum(count)) %>% 
-  ungroup() %>% 
-  mutate(confirmed = cumsum(confirmed)) 
-
-provincial_timeseries_confirmed <- rsa_timeseries_confirmed %>%
-  select(YYYYMMDD, province) %>% 
-  mutate(count = 1) %>% 
-  group_by(YYYYMMDD, province) %>% 
-  summarise(count = sum(count)) %>% 
-  spread(key = "province", value = "count") %>% 
-  ungroup() %>% 
-  replace(is.na(.),0) %>% 
-  mutate_if(is.numeric, cumsum)
+provincial_timeseries_confirmed <- rsa_provincial_timeseries_confirmed %>%
+  select(-date)
 write_csv(provincial_timeseries_confirmed, "data/public/rsa_provincial_ts_confirmed.csv")
 
 public_data_dir <- "data/public"
