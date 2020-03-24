@@ -251,6 +251,12 @@ global_latest_data <- global_latest_data %>%
 
 write_csv(global_latest_data, "data/public/global_latest_data.csv")
 
+# r covid19za_timeline_provincial_confirmed -------------
+rsa_provincial_timeseries_confirmed <- read_csv(
+  remote_file("https://raw.githubusercontent.com/dsfsi/covid19za/master/data/covid19za_provincial_cumulative_timeline_confirmed.csv")) %>% 
+  mutate(YYYYMMDD = ymd(YYYYMMDD))
+
+write_csv(rsa_provincial_timeseries_confirmed, "data/public/covid19za_provincial_cumulative_timeline_confirmed.csv")
 
 # r covid19za_timeline_confirmed -------------
 rsa_timeseries_confirmed <- read_csv(
