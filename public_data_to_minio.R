@@ -20,7 +20,6 @@ library(jsonlite)
 library(httr)
 library(purrr)
 
-
 # LOAD SECRETS ==========================================================================
 # Credentials
 secrets <- fromJSON(Sys.getenv("SECRETS_FILE"))
@@ -57,9 +56,9 @@ dir.create("data/restricted", recursive = TRUE)
 # time_series_19-covid-Confirmed ---
 # Pull raw data
 global_timeseries_confirmed <- read_csv(
-  remote_file("https://raw.githubusercontent.com/CSSEGISandData/COVID-19/master/csse_covid_19_data/csse_covid_19_time_series/time_series_19-covid-Confirmed.csv"))
+  remote_file("https://raw.githubusercontent.com/CSSEGISandData/COVID-19/master/csse_covid_19_data/csse_covid_19_time_series/time_series_covid19_confirmed_global.csv"))
 # Write raw data
-write_csv(global_timeseries_confirmed, "data/public/time_series_19-covid-Confirmed.csv")
+write_csv(global_timeseries_confirmed, "data/public/time_series_covid19_confirmed_global.csv")
 
 
 # r global_ts_sorted_confirmed ---
@@ -111,9 +110,9 @@ write_csv(global_ts_since_100, "data/public/global_ts_since_100.csv")
 
 # r time_series_19-covid-Deaths ----------- 
 global_timeseries_deaths <- read_csv(
-  remote_file("https://raw.githubusercontent.com/CSSEGISandData/COVID-19/master/csse_covid_19_data/csse_covid_19_time_series/time_series_19-covid-Deaths.csv"))
+  remote_file("https://raw.githubusercontent.com/CSSEGISandData/COVID-19/master/csse_covid_19_data/csse_covid_19_time_series/time_series_covid19_deaths_global.csv"))
 
-write_csv(global_timeseries_deaths, "data/public/time_series_19-covid-Deaths.csv")
+write_csv(global_timeseries_deaths, "data/public/time_series_covid19_deaths_global.csv")
 
 # r global_ts_sorted_deaths --------------
 global_timeseries_deaths <- global_timeseries_deaths %>% 
