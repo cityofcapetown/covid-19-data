@@ -19,6 +19,7 @@ library(lubridate)
 library(jsonlite)
 library(httr)
 library(purrr)
+library(readxl)
 
 # LOAD SECRETS ==========================================================================
 # Credentials
@@ -53,13 +54,26 @@ remote_file <- function(url) {
 dir.create("data/public", recursive = TRUE)
 dir.create("data/restricted", recursive = TRUE)
 
+# public announcements ---
+public_announcements <- "data/public/covid_19 announcements.xlsx"
+minio_to_file(public_announcements,
+              "covid",
+              minio_key,
+              minio_secret,
+              "EDGE",
+              minio_filename_override=public_announcements)
+
+covid_general_announcements <- read_excel(public_announcements, sheet = "General announcements")
+covid_key_announcements <- read_excel(public_announcements, sheet = "Key announcements")
+write_csv(covid_general_announcements, "data/public/covid_general_announcements.csv")
+write_csv(covid_key_announcements, "data/public/covid_key_announcements.csv")
+
 # time_series_19-covid-Confirmed ---
 # Pull raw data
 global_timeseries_confirmed <- read_csv(
   remote_file("https://raw.githubusercontent.com/CSSEGISandData/COVID-19/master/csse_covid_19_data/csse_covid_19_time_series/time_series_covid19_confirmed_global.csv"))
 # Write raw data
 write_csv(global_timeseries_confirmed, "data/public/time_series_covid19_confirmed_global.csv")
-
 
 # r global_ts_sorted_confirmed ---
 # Drop unnecessary columns, roll up to country level
