@@ -165,7 +165,6 @@ global_country_stats_fixed_names <- global_country_stats %>%
 
 write_csv(global_pop, "data/public/global_pop_names_fixed.csv")
 
-
 # r global_pop_m_raw ----
 if(!file.exists("data/public/global_pop_m_raw.csv")) {
   global_pop_m_list <-remote_file("https://api.census.gov/data/timeseries/idb/1year?get=POP,AREA_KM2,NAME&time=2019&AGE=0:120&SEX=0")
