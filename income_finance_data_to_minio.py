@@ -86,7 +86,8 @@ if __name__ == "__main__":
     
     SUBJECT_FILTER = 'TOTAL ISU'
     filtered_items = filter_account(account, SUBJECT_FILTER)
-    
+
+    CURRENT_FILENAME = "total_isu_current.xls"
     BUCKET = 'covid'
     RESTRICTED_PREFIX = "data/private/"
     for attachment_path in get_attachment_file(filtered_items):
@@ -100,9 +101,13 @@ if __name__ == "__main__":
             minio_secret=secrets["minio"]["edge"]["secret"],
             data_classification=minio_utils.DataClassification.EDGE,
         )
-    
-    
-    
-    
-    
-    
+
+        os.link(attachment_path, CURRENT_FILENAME)
+        minio_utils.file_to_minio(
+            filename=CURRENT_FILENAME,
+            filename_prefix_override=RESTRICTED_PREFIX,
+            minio_bucket=BUCKET,
+            minio_key=secrets["minio"]["edge"]["access"],
+            minio_secret=secrets["minio"]["edge"]["secret"],
+            data_classification=minio_utils.DataClassification.EDGE,
+        )

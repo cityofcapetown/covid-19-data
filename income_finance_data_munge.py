@@ -96,7 +96,8 @@ if __name__ == "__main__":
     
     BUCKET = 'covid'
     RESTRICTED_PREFIX = "data/private/"
-    MINIO_FILENAME = "{}TOTAL ISU.xls".format(RESTRICTED_PREFIX)
+    CURRENT_FILENAME = "total_isu_current.xls"
+    MINIO_FILENAME = "{}{}".format(RESTRICTED_PREFIX, CURRENT_FILENAME)
     for raw_datafile in get_raw_finance_file(secrets["minio"]["edge"]["access"],
                                              secrets["minio"]["edge"]["secret"],
                                              MINIO_FILENAME, BUCKET):
