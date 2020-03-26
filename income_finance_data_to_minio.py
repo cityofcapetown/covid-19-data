@@ -102,12 +102,13 @@ if __name__ == "__main__":
             data_classification=minio_utils.DataClassification.EDGE,
         )
 
-        os.link(attachment_path, CURRENT_FILENAME)
-        minio_utils.file_to_minio(
-            filename=CURRENT_FILENAME,
-            filename_prefix_override=RESTRICTED_PREFIX,
-            minio_bucket=BUCKET,
-            minio_key=secrets["minio"]["edge"]["access"],
-            minio_secret=secrets["minio"]["edge"]["secret"],
-            data_classification=minio_utils.DataClassification.EDGE,
-        )
+        if attachment_path.endswith(".xls") and not os.path.exists(CURRENT_FILENAME):
+            os.link(attachment_path, CURRENT_FILENAME)
+            minio_utils.file_to_minio(
+                filename=CURRENT_FILENAME,
+                filename_prefix_override=RESTRICTED_PREFIX,
+                minio_bucket=BUCKET,
+                minio_key=secrets["minio"]["edge"]["access"],
+                minio_secret=secrets["minio"]["edge"]["secret"],
+                data_classification=minio_utils.DataClassification.EDGE,
+            )
