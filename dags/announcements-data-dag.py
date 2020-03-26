@@ -24,7 +24,7 @@ startup_cmd = (
 )
 
 dag_interval = timedelta(hours=1)
-dag = DAG('covid-19-media-data',
+dag = DAG('covid-19-announcements-data',
           start_date=DAG_STARTDATE,
           catchup=True,
           default_args=default_args,
