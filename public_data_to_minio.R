@@ -133,7 +133,6 @@ global_ts_sorted_confirmed <- global_ts_spread_confirmed %>%
 # Write out csv
 write_csv(global_ts_sorted_confirmed, "data/public/global_ts_sorted_confirmed.csv")
 
-
 # r global_time_since_100 ---
 # this rsa max is just a quick workaround to make the SA series appear on the chart.
 rsa_max <- global_timeseries_confirmed %>% 
@@ -203,6 +202,15 @@ global_latest_deaths$country <- rownames(global_latest_deaths)
 
 global_latest_data <- left_join(global_latest_confirmed, global_latest_deaths, by = "country")
 
+minio_to_file("data/public/global_country_stats_fixed_names.csv",
+              "covid",
+              minio_key,
+              minio_secret,
+              "EDGE",
+              minio_filename_override="data/public/global_country_stats_fixed_names.csv")
+
+global_country_stats_fixed_names <- read_csv("data/public/global_country_stats_fixed_names.csv")
+
 global_latest_data <- left_join(global_latest_data, global_country_stats_fixed_names, by=c("country" = "NAME"))
 
 global_latest_data <- drop_na(global_latest_data) 
@@ -252,9 +260,8 @@ provincial_timeseries_confirmed <- rsa_provincial_timeseries_confirmed %>%
   select(-date)
 write_csv(provincial_timeseries_confirmed, "data/public/rsa_provincial_ts_confirmed.csv")
 
-
 # SEND TO MINIO
-public_data_dir <- "data/public"
+public_data_dir <- "data/public/"
 for (filename in list.files(public_data_dir)) {
   print(file.path(public_data_dir, filename))
   file_to_minio(file.path(public_data_dir, filename),
@@ -265,7 +272,7 @@ for (filename in list.files(public_data_dir)) {
                 filename_prefix_override = public_data_dir)
 }  
 
-private_data_dir <- "data/private"
+private_data_dir <- "data/private/"
 for (filename in list.files(private_data_dir)) {
   print(file.path(public_data_dir, filename))
   file_to_minio(file.path(public_data_dir, filename),

@@ -119,6 +119,7 @@ global_country_stats_fixed_names <- global_country_stats %>%
          NAME = str_replace(NAME, "Taiwan", "Taiwan*"))
 
 write_csv(global_pop, "data/public/global_pop_names_fixed.csv")
+write_csv(global_country_stats_fixed_names, "data/public/global_country_stats_fixed_names.csv")
 
 # r global_pop_m_raw ----
 if(!file.exists("data/public/global_pop_m_raw.csv")) {
@@ -240,7 +241,7 @@ pgwc_wc_province_polygons <- read_sf(file.path(staging_root, filedir))
 save_geojson(pgwc_wc_province_polygons)
 
 # SEND TO MINIO
-public_data_dir <- "data/public"
+public_data_dir <- "data/public/"
 for (filename in list.files(public_data_dir)) {
   print(file.path(public_data_dir, filename))
   file_to_minio(file.path(public_data_dir, filename),
@@ -251,7 +252,7 @@ for (filename in list.files(public_data_dir)) {
                 filename_prefix_override = public_data_dir)
 }  
 
-private_data_dir <- "data/private"
+private_data_dir <- "data/private/"
 for (filename in list.files(private_data_dir)) {
   print(file.path(public_data_dir, filename))
   file_to_minio(file.path(public_data_dir, filename),
