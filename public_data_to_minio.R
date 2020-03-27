@@ -346,7 +346,7 @@ save_geojson(cct_2016_pop_density)
 
 # Health care regions --------------------
 health_districts <- load_rgdb_table("LDR.SL_CGIS_CITY_HLTH_RGN", minio_key, minio_secret)
-save_geojson(cct_2016_pop_density)
+save_geojson(health_districts)
 
 # Health car facilities --------------------
 health_care_facilities <- load_rgdb_table("LDR.SL_ENVH_HLTH_CARE_FCLT", minio_key, minio_secret)
