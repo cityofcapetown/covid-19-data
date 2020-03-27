@@ -83,8 +83,10 @@ save_geojson <- function(sf_frame) {
 # CREATE DIRS =================================================================
 unlink("data/public", recursive= T)
 unlink("data/restricted", recursive = T)
+unlink("data/staging", recursive = T)
 dir.create("data/public", recursive = TRUE)
 dir.create("data/restricted", recursive = TRUE)
+dir.create("data/staging", recursive = T)
 
 # PROCESS =====================================================================
 # r global_pop_raw ----
@@ -212,7 +214,30 @@ informal_settlements <- load_rgdb_table("LDR.SL_INF_STLM", minio_key, minio_secr
 save_geojson(informal_settlements)
 
 # PGWC Large Files Server
+staging_root <- "data/staging" 
+filedir <- "City"
+filename <- file.path(staging_root, paste(filedir,"zip", sep = "."))
+minio_to_file(filename,
+              "covid",
+              minio_key,
+              minio_secret,
+              "EDGE",
+              minio_filename_override=filename)
+unzip(filename, exdir = staging_root)
+pgwc_cct_polygons <- read_sf(file.path(staging_root, filedir))
+save_geojson(pgwc_cct_polygons)
 
+filedir <- "Province"
+filename <- file.path(staging_root, paste(filedir,"zip", sep = "."))
+minio_to_file(filename,
+              "covid",
+              minio_key,
+              minio_secret,
+              "EDGE",
+              minio_filename_override=filename)
+unzip(filename, exdir = staging_root)
+pgwc_wc_province_polygons <- read_sf(file.path(staging_root, filedir))
+save_geojson(pgwc_wc_province_polygons)
 
 # SEND TO MINIO
 public_data_dir <- "data/public"

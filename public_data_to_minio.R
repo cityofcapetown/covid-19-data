@@ -81,10 +81,12 @@ save_geojson <- function(sf_frame) {
   }
 }
 # CREATE DIRS =================================================================
-unlink("data/public", recursive=T)
+unlink("data/public", recursive= T)
 unlink("data/restricted", recursive = T)
+unlink("data/staging", recursive = T)
 dir.create("data/public", recursive = TRUE)
 dir.create("data/restricted", recursive = TRUE)
+dir.create("data/staging", recursive = T)
 
 # PROCESS DATA
 
