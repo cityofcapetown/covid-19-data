@@ -20,6 +20,8 @@ library(jsonlite)
 library(httr)
 library(purrr)
 library(readxl)
+library(arrow)
+library(sf)
 
 # LOAD SECRETS ==========================================================================
 # Credentials
@@ -50,6 +52,34 @@ remote_file <- function(url) {
   content(request_object$result)
 }
 
+load_rgdb_table <- function(table_name, minio_key, minio_secret) {
+  temp_dir <- tempdir()
+  cat("Loading", table_name, "from rgdb bucket and reading into memory \n")
+  filename = file.path(temp_dir, paste(table_name, ".parquet", sep = ""))
+  if (!file.exists(filename)) {
+    minio_to_file(filename,
+                  minio_key=minio_key,
+                  minio_secret=minio_secret,
+                  minio_bucket="rgdb",
+                  data_classification= "EDGE")
+  }
+  wkt_df <- read_parquet(filename)
+  cat("Converting", table_name, "data frame into spatial feature \n")
+  geo_layer <- st_as_sf(wkt_df, wkt = "EWKT")
+  names(st_geometry(geo_layer)) <- NULL
+  return(geo_layer)
+}
+
+save_geojson <- function(sf_frame) {
+  savepath <- file.path("data/public", 
+                        paste(deparse(substitute(sf_frame)), "geojson", sep = "."))
+  if (!("sf" %in% class(sf_frame))) {
+    stop("Not a simple feature object!")
+  } else {
+    st_write(sf_frame, savepath, delete_dsn = TRUE)
+    print(paste("Saved to", savepath))
+  }
+}
 # CREATE DIRS =================================================================
 dir.create("data/public", recursive = TRUE)
 dir.create("data/restricted", recursive = TRUE)
@@ -297,6 +327,41 @@ provincial_timeseries_confirmed <- rsa_provincial_timeseries_confirmed %>%
   select(-date)
 write_csv(provincial_timeseries_confirmed, "data/public/rsa_provincial_ts_confirmed.csv")
 
+
+# SPATIAL DATA
+# Ward density ----------------------
+wards <- load_rgdb_table("LDR.SL_CGIS_WARD", minio_key, minio_secret)
+wards_2016 <- wards %>% filter(WARD_YEAR == 2016)
+
+wards_2016_polygons <- wards_2016 %>% select(WARD_NAME)
+
+wards_2016_density <- read_csv("data/public/ward_density_2016.csv") %>% 
+  mutate(WARD_NAME = as.character(WARD)) %>%
+  select(WARD_NAME, `2016_POP`, `2016_POP_DENSITY_KM2`) 
+
+cct_2016_pop_density <- left_join(wards_2016_polygons, wards_2016_density, by = "WARD_NAME") %>% 
+  select(WARD_NAME, `2016_POP`, `2016_POP_DENSITY_KM2` ) 
+
+save_geojson(cct_2016_pop_density)
+
+# Health care regions --------------------
+health_districts <- load_rgdb_table("LDR.SL_CGIS_CITY_HLTH_RGN", minio_key, minio_secret)
+save_geojson(cct_2016_pop_density)
+
+# Health car facilities --------------------
+health_care_facilities <- load_rgdb_table("LDR.SL_ENVH_HLTH_CARE_FCLT", minio_key, minio_secret)
+save_geojson(health_care_facilities)
+
+informal_taps <- load_rgdb_table("LDR.SL_WTSN_IS_UPDT_TAPS", minio_key, minio_secret)
+save_geojson(informal_taps)
+
+informal_toilets <- load_rgdb_table("LDR.SL_WTSN_IS_UPDT_TLTS", minio_key, minio_secret)
+save_geojson(informal_toilets)
+
+informal_settlements <- load_rgdb_table("LDR.SL_INF_STLM", minio_key, minio_secret)
+save_geojson(informal_settlements)
+
+# SEND TO MINIO
 public_data_dir <- "data/public"
 for (filename in list.files("data/public")) {
   print(file.path(public_data_dir, filename))
@@ -307,5 +372,5 @@ for (filename in list.files("data/public")) {
                 "EDGE",
                 filename_prefix_override = "data/public/")
 }  
-  
+
   
