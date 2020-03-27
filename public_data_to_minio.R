@@ -81,8 +81,12 @@ save_geojson <- function(sf_frame) {
   }
 }
 # CREATE DIRS =================================================================
+unlink("data/public", recursive=T)
+unlink("data/restricted", recursive = T)
 dir.create("data/public", recursive = TRUE)
 dir.create("data/restricted", recursive = TRUE)
+
+# PROCESS DATA
 
 # public announcements ---
 public_announcements <- "data/public/covid_19 announcements.xlsx"
@@ -177,87 +181,6 @@ global_ts_sorted_deaths <- global_ts_spread_deaths %>%
   mutate(report_date = global_ts_spread_deaths$report_date)
 write_csv(global_ts_sorted_deaths, "data/public/global_ts_sorted_deaths.csv")
 
-
-# r global_pop_raw ----
-if(!file.exists("data/public/global_pop_raw.csv")) {
-  #SEX=0 all SEX=1 male SEX=2 female
-  global_pop_list <-remote_file("https://api.census.gov/data/timeseries/idb/1year?get=POP,AREA_KM2,NAME&time=2019&AGE=0:120&SEX=0")
-  global_pop <- data.frame(matrix(unlist(global_pop_list), 
-                                  nrow = length(global_pop_list), 
-                                  byrow = T), 
-                           stringsAsFactors = FALSE) %>% 
-    as_tibble()
-  names(global_pop) <- as.character(unlist(global_pop[1,]))
-  global_pop <- global_pop[-1,]
-  global_pop <- global_pop %>% mutate(POP = as.numeric(POP),
-                                      AREA_KM2 = as.numeric(AREA_KM2),
-                                      time = as.numeric(time),
-                                      AGE = as.numeric(AGE))
-  write_csv(global_pop, "data/public/global_pop_raw.csv")
-}
-
-# r global_pop_names_fixed.csv ------
-global_pop <- read_csv("data/public/global_pop_raw.csv")
-
-global_country_stats <- global_pop %>% dplyr::group_by(NAME) %>% 
-  dplyr::summarise(population = sum(POP), area = max(AREA_KM2))
-
-global_country_stats_fixed_names <- global_country_stats %>% 
-  mutate(NAME = str_replace(NAME, "Swaziland", "Eswatini"),
-         NAME = str_replace(NAME, "United States", "US"),
-         NAME = str_replace(NAME, "Taiwan", "Taiwan*"))
-
-write_csv(global_pop, "data/public/global_pop_names_fixed.csv")
-
-# r global_pop_m_raw ----
-if(!file.exists("data/public/global_pop_m_raw.csv")) {
-  global_pop_m_list <-remote_file("https://api.census.gov/data/timeseries/idb/1year?get=POP,AREA_KM2,NAME&time=2019&AGE=0:120&SEX=0")
-  global_pop_m <- data.frame(matrix(unlist(global_pop_m_list), 
-                                    nrow = length(global_pop_m_list), 
-                                    byrow = T), 
-                             stringsAsFactors = FALSE) %>% 
-    as_tibble()
-  names(global_pop_m) <- as.character(unlist(global_pop_m[1,]))
-  global_pop_m <- global_pop_m[-1,]
-  global_pop_m <- global_pop_m %>% mutate(POP = as.numeric(POP),
-                                          AREA_KM2 = as.numeric(AREA_KM2),
-                                          time = as.numeric(time),
-                                          AGE = as.numeric(AGE)) 
-  write_csv(global_pop_m, "data/public/global_pop_m_raw.csv")
-}
-
-
-# r global_pop_f_raw -----------
-if(!file.exists("data/public/global_pop_f_raw.csv")) {
-  global_pop_f_list <-remote_file("https://api.census.gov/data/timeseries/idb/1year?get=POP,AREA_KM2,NAME&time=2019&AGE=0:120&SEX=0")
-  global_pop_f <- data.frame(matrix(unlist(global_pop_f_list), 
-                                    nrow = length(global_pop_f_list), 
-                                    byrow = T), 
-                             stringsAsFactors = FALSE) %>% 
-    as_tibble()
-  names(global_pop_f) <- as.character(unlist(global_pop_f[1,]))
-  global_pop_f <- global_pop_f[-1,]
-  global_pop_f <- global_pop_f %>% mutate(POP = as.numeric(POP),
-                                          AREA_KM2 = as.numeric(AREA_KM2),
-                                          time = as.numeric(time),
-                                          AGE = as.numeric(AGE))
-  write_csv(global_pop_f, "data/public/global_pop_f_raw.csv")
-}
-
-
-# r rsa_pop_genders_ages -----------
-global_pop_m <- read_csv("data/public/global_pop_m_raw.csv")
-global_pop_f <- read_csv("data/public/global_pop_f_raw.csv")
-
-rsa_pop_m <- global_pop_m %>% filter(NAME == "South Africa") %>% dplyr::select(AGE, POP) %>% dplyr::rename(male = POP)
-
-rsa_pop_f <- global_pop_f %>% filter(NAME == "South Africa") %>% dplyr::select(AGE, POP) %>% dplyr::rename(female = POP)
-
-rsa_pop <- left_join(rsa_pop_f, rsa_pop_m, by = "AGE")
-
-write_csv(rsa_pop, "data/public/rsa_pop_genders_ages.csv")
-
-
 # r global_latest_stats -------------
 global_latest_confirmed <- global_ts_spread_confirmed %>% 
   filter(report_date == max(global_ts_spread_confirmed$report_date)) %>% 
@@ -328,49 +251,26 @@ provincial_timeseries_confirmed <- rsa_provincial_timeseries_confirmed %>%
 write_csv(provincial_timeseries_confirmed, "data/public/rsa_provincial_ts_confirmed.csv")
 
 
-# SPATIAL DATA
-# Ward density ----------------------
-wards <- load_rgdb_table("LDR.SL_CGIS_WARD", minio_key, minio_secret)
-wards_2016 <- wards %>% filter(WARD_YEAR == 2016)
-
-wards_2016_polygons <- wards_2016 %>% select(WARD_NAME)
-
-wards_2016_density <- read_csv("data/public/ward_density_2016.csv") %>% 
-  mutate(WARD_NAME = as.character(WARD)) %>%
-  select(WARD_NAME, `2016_POP`, `2016_POP_DENSITY_KM2`) 
-
-cct_2016_pop_density <- left_join(wards_2016_polygons, wards_2016_density, by = "WARD_NAME") %>% 
-  select(WARD_NAME, `2016_POP`, `2016_POP_DENSITY_KM2` ) 
-
-save_geojson(cct_2016_pop_density)
-
-# Health care regions --------------------
-health_districts <- load_rgdb_table("LDR.SL_CGIS_CITY_HLTH_RGN", minio_key, minio_secret)
-save_geojson(health_districts)
-
-# Health car facilities --------------------
-health_care_facilities <- load_rgdb_table("LDR.SL_ENVH_HLTH_CARE_FCLT", minio_key, minio_secret)
-save_geojson(health_care_facilities)
-
-informal_taps <- load_rgdb_table("LDR.SL_WTSN_IS_UPDT_TAPS", minio_key, minio_secret)
-save_geojson(informal_taps)
-
-informal_toilets <- load_rgdb_table("LDR.SL_WTSN_IS_UPDT_TLTS", minio_key, minio_secret)
-save_geojson(informal_toilets)
-
-informal_settlements <- load_rgdb_table("LDR.SL_INF_STLM", minio_key, minio_secret)
-save_geojson(informal_settlements)
-
 # SEND TO MINIO
 public_data_dir <- "data/public"
-for (filename in list.files("data/public")) {
+for (filename in list.files(public_data_dir)) {
   print(file.path(public_data_dir, filename))
   file_to_minio(file.path(public_data_dir, filename),
                 "covid",
                 minio_key,
                 minio_secret,
                 "EDGE",
-                filename_prefix_override = "data/public/")
+                filename_prefix_override = public_data_dir)
 }  
 
-  
+private_data_dir <- "data/private"
+for (filename in list.files(private_data_dir)) {
+  print(file.path(public_data_dir, filename))
+  file_to_minio(file.path(public_data_dir, filename),
+                "covid",
+                minio_key,
+                minio_secret,
+                "EDGE",
+                filename_prefix_override = private_data_dir)
+}  
+
