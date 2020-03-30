@@ -2,8 +2,10 @@ import json
 import logging
 import os
 import sys
+import tempfile
 
 from db_utils import minio_utils, odbc_utils
+import pandas
 
 
 def obtain_baseline_data(r3_user, r3_password,
@@ -27,8 +29,40 @@ def obtain_baseline_data(r3_user, r3_password,
     return baseline_df
 
 
-def obtain_diff_data():
-    pass
+def obtain_diff_data(minio_access, minio_secret, minio_classification):
+    PAYMENT_DATA_FILE = ""
+    PAYMENT_DATA_BUCKET = ""
+    PAYMENT_DATA_DELIMETER = "~|~"
+    PAYMENT_DATA_COLUMNS = ("Date", "PaymentType", "DailyTotal")
+
+    with tempfile.NamedTemporaryFile() as temp_data_file:
+        logging.debug("Pulling diff data from Minio bucket...")
+        result = minio_utils.minio_to_file(
+            temp_data_file.name,
+            PAYMENT_DATA_BUCKET,
+            minio_access,
+            minio_secret,
+            minio_classification,
+            minio_filename_override=PAYMENT_DATA_FILE
+        )
+        assert result
+
+        logging.debug(f"Reading in raw data from '{temp_data_file.name}'...")
+        raw_diff_data = temp_data_file.read()
+
+        logging.debug("Creating Diff DF")
+        diff_data_df = pandas.DataFrame((
+            map(lambda x: x.strip() if len(x.strip()) > 0 else None,
+                diff_data_raw_line.split(PAYMENT_DATA_DELIMETER))
+            for diff_data_raw_line in raw_diff_data.split("\n")
+            if PAYMENT_DATA_DELIMETER in diff_data_raw_line
+        ), columns=PAYMENT_DATA_COLUMNS)
+
+        return diff_data_df
+
+
+def combine_baseline_diff(baseline_df, diff_df):
+    return baseline_df
 
 
 if __name__ == "__main__":
@@ -59,15 +93,17 @@ if __name__ == "__main__":
     logging.info("Fetch[ed] baseline data from R3 QA DB")
 
     # Topping up with Prod data
-    # ToDo pull file, read in diff df
-    # ToDo combine with baseline df
+    diff_payment_df = obtain_diff_data(secrets["minio"]["edge"]["access"],
+                               secrets["minio"]["edge"]["secret"],
+                               minio_utils.DataClassification.EDGE)
+    combined_df = combine_baseline_diff(baseline_payment_df, diff_payment_df)
 
     # Writing result out
     logging.info("Writing full DataFrame to Minio...")
     BUCKET = 'covid'
     PAYMENTS_FILENAME_PATH = "data/private/business_continuity_finance_payments"
 
-    minio_utils.dataframe_to_minio(baseline_payment_df, BUCKET,
+    minio_utils.dataframe_to_minio(combined_df, BUCKET,
                                    secrets["minio"]["edge"]["access"], secrets["minio"]["edge"]["secret"],
                                    minio_utils.DataClassification.EDGE,
                                    filename_prefix_override=PAYMENTS_FILENAME_PATH,
