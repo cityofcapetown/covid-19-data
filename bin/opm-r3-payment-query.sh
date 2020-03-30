@@ -16,7 +16,8 @@ spool opm-r3-payment-query.txt
 SELECT
 re."LAUFD" AS "Date",
 'Total' AS "PaymentType",
-SUM(re."RBETR") AS "DailyTotal"
+SUM(re."RBETR") AS "DailyTotal",
+CURRENT_TIMESTAMP AS "TimestampAccessed"
 
 FROM "SAPR3"."REGUH" re
 
@@ -33,7 +34,8 @@ UNION
 SELECT
 re."LAUFD" AS "Date",
 'Investments' AS "PaymentType",
-SUM(re."RBETR") AS "DailyTotal"
+SUM(re."RBETR") AS "DailyTotal",
+CURRENT_TIMESTAMP AS "TimestampAccessed"
 
 FROM "SAPR3"."REGUH" re
 
@@ -51,7 +53,8 @@ UNION
 SELECT
 re."LAUFD" AS "Date",
 'Payrolls' AS "PaymentType",
-SUM(re."RBETR") AS "DailyTotal"
+SUM(re."RBETR") AS "DailyTotal",
+CURRENT_TIMESTAMP AS "TimestampAccessed"
 
 FROM "SAPR3"."REGUH" re
 
@@ -69,7 +72,8 @@ UNION
 SELECT
 re."LAUFD" AS "Date",
 'Refunds' AS "PaymentType",
-SUM(re."RBETR") AS "DailyTotal"
+SUM(re."RBETR") AS "DailyTotal",
+CURRENT_TIMESTAMP AS "TimestampAccessed"
 
 FROM "SAPR3"."REGUH" re
 
@@ -88,7 +92,8 @@ UNION
 SELECT
 re."LAUFD" AS "Date",
 'Vendors' AS "PaymentType",
-SUM(re."RBETR") AS "DailyTotal"
+SUM(re."RBETR") AS "DailyTotal",
+CURRENT_TIMESTAMP AS "TimestampAccessed"
 
 FROM "SAPR3"."REGUH" re
 
