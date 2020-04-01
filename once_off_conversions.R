@@ -70,8 +70,8 @@ load_rgdb_table <- function(table_name, minio_key, minio_secret) {
   return(geo_layer)
 }
 
-save_geojson <- function(sf_frame) {
-  savepath <- file.path("data/public", 
+save_geojson <- function(sf_frame, savedir) {
+  savepath <- file.path(savedir, 
                         paste(deparse(substitute(sf_frame)), "geojson", sep = "."))
   if (!("sf" %in% class(sf_frame))) {
     stop("Not a simple feature object!")
@@ -80,6 +80,8 @@ save_geojson <- function(sf_frame) {
     print(paste("Saved to", savepath))
   }
 }
+
+
 # CREATE DIRS =================================================================
 unlink("data/public", recursive= T)
 unlink("data/restricted", recursive = T)
@@ -192,27 +194,27 @@ wards_2016_density <- read_csv("data/public/ward_density_2016.csv") %>%
 cct_2016_pop_density <- left_join(wards_2016_polygons, wards_2016_density, by = "WARD_NAME") %>% 
   select(WARD_NAME, `2016_POP`, `2016_POP_DENSITY_KM2` ) 
 
-save_geojson(cct_2016_pop_density)
+save_geojson(cct_2016_pop_density, "data/public")
 
 # Health care regions --------------------
 health_districts <- load_rgdb_table("LDR.SL_CGIS_CITY_HLTH_RGN", minio_key, minio_secret)
-save_geojson(health_districts)
+save_geojson(health_districts, "data/public")
 
 # Health car facilities --------------------
 health_care_facilities <- load_rgdb_table("LDR.SL_ENVH_HLTH_CARE_FCLT", minio_key, minio_secret)
-save_geojson(health_care_facilities)
+save_geojson(health_care_facilities, "data/public")
 
 # Informal taps ------------------------
 informal_taps <- load_rgdb_table("LDR.SL_WTSN_IS_UPDT_TAPS", minio_key, minio_secret)
-save_geojson(informal_taps)
+save_geojson(informal_taps, "data/public")
 
 # Informal toilets -------------------
 informal_toilets <- load_rgdb_table("LDR.SL_WTSN_IS_UPDT_TLTS", minio_key, minio_secret)
-save_geojson(informal_toilets)
+save_geojson(informal_toilets, "data/public")
 
 # Informal settlements ------------
 informal_settlements <- load_rgdb_table("LDR.SL_INF_STLM", minio_key, minio_secret)
-save_geojson(informal_settlements)
+save_geojson(informal_settlements, "data/public")
 
 # PGWC Large Files Server
 staging_root <- "data/staging" 
@@ -226,7 +228,7 @@ minio_to_file(filename,
               minio_filename_override=filename)
 unzip(filename, exdir = staging_root)
 pgwc_cct_polygons <- read_sf(file.path(staging_root, filedir))
-save_geojson(pgwc_cct_polygons)
+save_geojson(pgwc_cct_polygons, "data/public")
 
 filedir <- "Province"
 filename <- file.path(staging_root, paste(filedir,"zip", sep = "."))
@@ -238,9 +240,39 @@ minio_to_file(filename,
               minio_filename_override=filename)
 unzip(filename, exdir = staging_root)
 pgwc_wc_province_polygons <- read_sf(file.path(staging_root, filedir))
-save_geojson(pgwc_wc_province_polygons)
+save_geojson(pgwc_wc_province_polygons, "data/public")
 
-# SEND TO MINIO
+# CCT Hex level 7 ------------------------
+
+minio_to_file("data/staging/city-hex-polygons-7.geojson",
+              "city-hex-polygons",
+              minio_key,
+              minio_secret,
+              "EDGE",
+              minio_filename_override="city-hex-polygons-7.geojson")
+cct_hex_polygons_7 <- read_sf("data/staging/city-hex-polygons-7.geojson")
+save_geojson(cct_hex_polygons_7, "data/public")
+
+# Resilience 
+
+staging_root <- "data/staging" 
+filedir <- "Climate Risk Study - Resilience"
+filename <- file.path(staging_root, paste(filedir,"zip", sep = "."))
+minio_to_file(filename,
+              "covid",
+              minio_key,
+              minio_secret,
+              "EDGE",
+              minio_filename_override=filename)
+
+unzip(filename)
+
+pgwc_cct_polygons <- read_sf(file.path(staging_root, filedir))
+save_geojson(pgwc_cct_polygons, "data/public")
+
+
+
+# SEND TO MINIO ====================================
 public_data_dir <- "data/public/"
 for (filename in list.files(public_data_dir)) {
   print(file.path(public_data_dir, filename))
