@@ -70,22 +70,12 @@ load_rgdb_table <- function(table_name, minio_key, minio_secret) {
   return(geo_layer)
 }
 
-save_geojson <- function(sf_frame) {
-  savepath <- file.path("data/public", 
-                        paste(deparse(substitute(sf_frame)), "geojson", sep = "."))
-  if (!("sf" %in% class(sf_frame))) {
-    stop("Not a simple feature object!")
-  } else {
-    st_write(sf_frame, savepath, delete_dsn = TRUE)
-    print(paste("Saved to", savepath))
-  }
-}
 # CREATE DIRS =================================================================
 unlink("data/public", recursive= T)
-unlink("data/restricted", recursive = T)
+unlink("data/private", recursive = T)
 unlink("data/staging", recursive = T)
 dir.create("data/public", recursive = TRUE)
-dir.create("data/restricted", recursive = TRUE)
+dir.create("data/private", recursive = TRUE)
 dir.create("data/staging", recursive = T)
 
 # PROCESS DATA
