@@ -22,6 +22,7 @@ library(purrr)
 library(readxl)
 library(arrow)
 library(sf)
+library(h3)
 
 # LOAD SECRETS ==========================================================================
 # Credentials
@@ -84,10 +85,10 @@ save_geojson <- function(sf_frame, savedir) {
 
 # CREATE DIRS =================================================================
 unlink("data/public", recursive= T)
-unlink("data/restricted", recursive = T)
+unlink("data/private", recursive = T)
 unlink("data/staging", recursive = T)
 dir.create("data/public", recursive = TRUE)
-dir.create("data/restricted", recursive = TRUE)
+dir.create("data/private", recursive = TRUE)
 dir.create("data/staging", recursive = T)
 
 # PROCESS =====================================================================
@@ -253,7 +254,57 @@ minio_to_file("data/staging/city-hex-polygons-7.geojson",
 cct_hex_polygons_7 <- read_sf("data/staging/city-hex-polygons-7.geojson")
 save_geojson(cct_hex_polygons_7, "data/public")
 
-# Resilience 
+# WC Hex level 7 and 8 ------------------
+minio_to_file("data/staging/DOH_HealthSubDistrictsWesternCape.zip",
+              "covid",
+              minio_key,
+              minio_secret,
+              "EDGE",
+              minio_filename_override="data/staging/DOH_HealthSubDistrictsWesternCape.zip")
+unzip("data/staging/DOH_HealthSubDistrictsWesternCape.zip", exdir= "data/staging")
+
+spatial_domain <- read_sf("data/staging/DOH_HealthSubDistrictsWesternCape")
+spatial_domain <- spatial_domain %>% st_transform(4326)
+spatial_domain <- st_union(spatial_domain)
+
+# NOTE: just polyfilling will exclude all hexes on boundary. So we need to do polyfill twice to get the edge polygons.
+bounding_box <- st_bbox(spatial_domain)
+# Convert bounding box to polygon
+coords <- cbind(
+  y = c(bounding_box[1], bounding_box[1], bounding_box[3], bounding_box[3], bounding_box[1]),
+  x = c(bounding_box[2], bounding_box[4], bounding_box[4], bounding_box[2], bounding_box[2]) )
+# Get res 4 bounding box
+bounding_box <- polyfill(coords, res = (4)) %>%
+  h3_set_to_multi_polygon()  %>% st_bbox()
+# Get bounding box of that level 4 set of polygons
+coords <- cbind(
+  y = c(bounding_box[1], bounding_box[1], bounding_box[3], bounding_box[3], bounding_box[1]),
+  x = c(bounding_box[2], bounding_box[4], bounding_box[4], bounding_box[2], bounding_box[2]) )
+
+# Now polyfill for level 7
+hexes <- polyfill(coords, res = 7) 
+hex_polygons <- hexes %>%
+  h3_to_geo_boundary_sf() %>% cbind(hexes)
+# Keep just those ones which intersect with the original polygon
+intersecting_hexes <- st_intersects(y = hex_polygons, 
+                                    x = spatial_domain, sparse=T)
+cct_hex_polygons_7 <- hex_polygons %>% slice(intersecting_hexes[[1]]) %>% rename(index = hexes)
+# Save to data/public
+save_geojson(cct_hex_polygons_7, "data/public")
+
+# Now polyfill for level 8
+hexes <- polyfill(coords, res = 8) 
+hex_polygons <- hexes %>%
+  h3_to_geo_boundary_sf() %>% cbind(hexes)
+# Keep just those ones which intersect with the original polygon
+intersecting_hexes <- st_intersects(y = hex_polygons, 
+                                    x = spatial_domain, sparse=T)
+cct_hex_polygons_8 <- hex_polygons %>% slice(intersecting_hexes[[1]]) %>% rename(index = hexes)
+# Save to data/public
+save_geojson(cct_hex_polygons_8, "data/public")
+
+
+# Resilience---------------------- 
 
 staging_root <- "data/staging" 
 filedir <- "Climate Risk Study - Resilience"
