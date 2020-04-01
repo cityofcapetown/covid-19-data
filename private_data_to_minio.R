@@ -93,6 +93,7 @@ wc_all_cases <- read_csv(wc_case_data)
 write_csv(wc_all_cases, "data/private/wc_all_cases.csv")
 
 ct_all_cases <- wc_all_cases %>% filter(district == "City of Cape Town")
+write_csv(ct_all_cases, "data/private/ct_all_cases.csv")
 
 private_data_dir <- "data/private/"
 for (filename in list.files(private_data_dir)) {
