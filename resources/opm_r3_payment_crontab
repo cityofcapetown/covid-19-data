@@ -1,0 +1,2 @@
+#Oracle DB query cron rules for Data Science
+0  1   *   *   *   cd /dataextract && ./opm-r3-payment-query.sh >/dev/null 2>&1 && curl -X PUT -T ./opm-r3-payment-query.txt https://ds2.capetown.gov.za/sap-r3-payments/ >/dev/null 2>&1

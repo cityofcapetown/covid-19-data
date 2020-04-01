@@ -10,7 +10,7 @@ podTemplate(containers: [
             container('cct-datascience-python') {
                     sh label: 'package_script', script: '''#!/usr/bin/env bash
                         file=covid-19-data.zip
-                        zip -r $file ./*.py ./*.R ./bin
+                        zip -r $file ./*.py ./*.R ./bin ./resources
                         exit $?'''
             }
             updateGitlabCommitStatus name: 'build', state: 'success'

@@ -4,7 +4,7 @@ from airflow.contrib.kubernetes.secret import Secret
 
 from datetime import datetime, timedelta
 
-DAG_STARTDATE = datetime(2020, 3, 23)
+DAG_STARTDATE = datetime(2020, 3, 30)
 default_args = {
     'owner': 'airflow',
     'depends_on_past': False,
@@ -24,16 +24,16 @@ startup_cmd = (
 )
 
 dag_interval = timedelta(hours=1)
-dag = DAG('covid-19-media-data',
+dag = DAG('covid-19-payment-data',
           start_date=DAG_STARTDATE,
-          catchup=True,
+          catchup=False,
           default_args=default_args,
           schedule_interval=dag_interval,
           concurrency=1)
 
 # env variables for inside the k8s pod
 k8s_run_env = {
-    'SECRETS_PATH': '/secrets/brandseye-secrets.json',
+    'SECRETS_PATH': '/secrets/secrets.json',
     'COVID_19_DEPLOY_FILE': 'covid-19-data.zip',
     'COVID_19_DEPLOY_URL': 'https://ds2.capetown.gov.za/covid-19-data-deploy',
     'COVID_19_DATA_DIR': '/covid-19-data',
@@ -42,7 +42,7 @@ k8s_run_env = {
 }
 
 # airflow-workers' secrets
-secret_file = Secret('volume', '/secrets', 'brandseye-secret')
+secret_file = Secret('volume', '/secrets', 'airflow-workers-secret')
 
 # arguments for the k8s operator
 k8s_run_args = {
@@ -60,7 +60,7 @@ k8s_run_args = {
 
 def covid_19_data_task(task_name, task_kwargs={}):
     """Factory for k8sPodOperator"""
-    name = "covid-19-media-data-{}".format(task_name)
+    name = "covid-19-payment-data-{}".format(task_name)
     run_args = {**k8s_run_args.copy(), **task_kwargs}
     run_cmd = "bash -c '{} && \"$COVID_19_DATA_DIR\"/bin/{}.sh'".format(startup_cmd, task_name)
 
@@ -78,7 +78,5 @@ def covid_19_data_task(task_name, task_kwargs={}):
 
 
 # Defining tasks
-MEDIA_TASK = 'media-data-fetch'
-meda_data_operator = covid_19_data_task(MEDIA_TASK)
-
-# Dependencies
+DATA_FETCH_TASK = 'payment-data-fetch'
+data_fetch_operator = covid_19_data_task(DATA_FETCH_TASK)
