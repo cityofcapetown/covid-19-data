@@ -80,3 +80,9 @@ def covid_19_data_task(task_name, task_kwargs={}):
 # Defining tasks
 DATA_FETCH_TASK = 'payment-data-fetch'
 data_fetch_operator = covid_19_data_task(DATA_FETCH_TASK)
+
+DATA_MUNGE_TASK = 'payment-data-munge'
+data_munge_operator = covid_19_data_task(DATA_MUNGE_TASK)
+
+# Dependencies
+data_fetch_operator >> data_munge_operator
