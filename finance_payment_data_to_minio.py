@@ -52,7 +52,7 @@ def obtain_diff_data(minio_access, minio_secret, minio_classification):
         assert result
 
         logging.debug(f"Reading in raw data from '{temp_data_file.name}'...")
-        raw_diff_data = temp_data_file.read()
+        raw_diff_data = temp_data_file.read().decode()
 
     logging.debug("Creating Diff DF")
     diff_data_df = pandas.DataFrame((

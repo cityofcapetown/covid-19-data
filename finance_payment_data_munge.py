@@ -9,10 +9,13 @@ import pandas
 
 BUCKET = 'covid'
 CLASSIFICATION = minio_utils.DataClassification.EDGE
-PAYMENTS_BASELINE_FILENAME_PATH = "data/private/business_continuity_finance_payments_baseline"
-PAYMENTS_DIFF_FILENAME_PATH = "data/private/business_continuity_finance_payments_diff"
+PAYMENTS_BASELINE_FILENAME_PATH = "data/private/business_continuity_finance_payments_baseline.csv"
+PAYMENTS_DIFF_FILENAME_PATH = "data/private/business_continuity_finance_payments_diff.csv"
+
 PAYMENT_DATE_COLUMN = "Date"
 PAYMENT_TIMESTAMP_COLUMN = "DateTimestamp"
+PAYMENT_DEDUP_COLUMNS = [PAYMENT_DATE_COLUMN, "PaymentType"]
+PAYMENT_DATA_COLUMNS = [PAYMENT_DATE_COLUMN, "PaymentType", "DailyTotal", "TimestampAccessed"]
 
 PAYMENTS_FILENAME_PATH = "data/private/business_continuity_finance_payments"
 
@@ -31,7 +34,7 @@ def get_data_df(filename, minio_access, minio_secret):
         assert result
 
         logging.debug(f"Reading in raw data from '{temp_data_file.name}'...")
-        data_df = temp_data_file.read()
+        data_df = pandas.read_csv(temp_data_file)
 
     data_df[PAYMENT_TIMESTAMP_COLUMN] = pandas.to_datetime(data_df.Date, format="%Y%m%d")
     data_df.set_index(PAYMENT_TIMESTAMP_COLUMN, inplace=True)
@@ -50,7 +53,13 @@ def combine_baseline_diff(baseline_df, diff_df):
     logging.debug(f"baseline_df.tail(10)=\n{baseline_df.tail(10)}")
     logging.debug(f"diff_df.tail(10)=\n{diff_df.tail(10)}")
 
-    combined_df = baseline_df.combine_first(diff_df)
+    combined_df = diff_df.combine_first(baseline_df)
+    combined_df = combined_df.drop_duplicates(subset=PAYMENT_DEDUP_COLUMNS)
+
+    # Cleaning up...
+    combined_df[PAYMENT_DATE_COLUMN] = combined_df[PAYMENT_DATE_COLUMN].astype(int)
+    combined_df = combined_df.reset_index()[PAYMENT_DATA_COLUMNS]
+
     logging.debug(f"combined_df.tail(10)=\n{combined_df.tail(10)}")
 
     return combined_df
