@@ -7,11 +7,20 @@ import tempfile
 from db_utils import minio_utils, odbc_utils
 import pandas
 
+BASELINE_SQL_PATH = "resources/city-payments-daily.sql"
+
+PAYMENT_DATA_FILE = "opm-r3-payment-query.txt"
+PAYMENT_DATA_BUCKET = "sap-r3-payments"
+PAYMENT_DATA_DELIMETER = "~|~"
+PAYMENT_DATA_COLUMNS = ("Date", "PaymentType", "DailyTotal", "TimestampAccessed")
+
+BUCKET = 'covid'
+PAYMENTS_BASELINE_FILENAME_PATH = "data/private/business_continuity_finance_payments_baseline"
+PAYMENTS_DIFF_FILENAME_PATH = "data/private/business_continuity_finance_payments_diff"
+
 
 def obtain_baseline_data(r3_user, r3_password,
                          r3_hostname, r3_hostport, r3_dbname):
-    BASELINE_SQL_PATH = "resources/city-payments-daily.sql"
-
     current_path = os.path.dirname(
         os.path.abspath(__file__)
     )
@@ -30,11 +39,6 @@ def obtain_baseline_data(r3_user, r3_password,
 
 
 def obtain_diff_data(minio_access, minio_secret, minio_classification):
-    PAYMENT_DATA_FILE = ""
-    PAYMENT_DATA_BUCKET = ""
-    PAYMENT_DATA_DELIMETER = "~|~"
-    PAYMENT_DATA_COLUMNS = ("Date", "PaymentType", "DailyTotal")
-
     with tempfile.NamedTemporaryFile() as temp_data_file:
         logging.debug("Pulling diff data from Minio bucket...")
         result = minio_utils.minio_to_file(
@@ -48,21 +52,17 @@ def obtain_diff_data(minio_access, minio_secret, minio_classification):
         assert result
 
         logging.debug(f"Reading in raw data from '{temp_data_file.name}'...")
-        raw_diff_data = temp_data_file.read()
+        raw_diff_data = temp_data_file.read().decode()
 
-        logging.debug("Creating Diff DF")
-        diff_data_df = pandas.DataFrame((
-            map(lambda x: x.strip() if len(x.strip()) > 0 else None,
-                diff_data_raw_line.split(PAYMENT_DATA_DELIMETER))
-            for diff_data_raw_line in raw_diff_data.split("\n")
-            if PAYMENT_DATA_DELIMETER in diff_data_raw_line
-        ), columns=PAYMENT_DATA_COLUMNS)
+    logging.debug("Creating Diff DF")
+    diff_data_df = pandas.DataFrame((
+        map(lambda x: x.strip() if len(x.strip()) > 0 else None,
+            diff_data_raw_line.split(PAYMENT_DATA_DELIMETER))
+        for diff_data_raw_line in raw_diff_data.split("\n")
+        if PAYMENT_DATA_DELIMETER in diff_data_raw_line
+    ), columns=PAYMENT_DATA_COLUMNS)
 
-        return diff_data_df
-
-
-def combine_baseline_diff(baseline_df, diff_df):
-    return baseline_df
+    return diff_data_df
 
 
 if __name__ == "__main__":
@@ -96,17 +96,21 @@ if __name__ == "__main__":
     diff_payment_df = obtain_diff_data(secrets["minio"]["edge"]["access"],
                                secrets["minio"]["edge"]["secret"],
                                minio_utils.DataClassification.EDGE)
-    combined_df = combine_baseline_diff(baseline_payment_df, diff_payment_df)
 
     # Writing result out
-    logging.info("Writing full DataFrame to Minio...")
-    BUCKET = 'covid'
-    PAYMENTS_FILENAME_PATH = "data/private/business_continuity_finance_payments"
-
-    minio_utils.dataframe_to_minio(combined_df, BUCKET,
+    logging.info("Writing baseline DataFrame to Minio...")
+    minio_utils.dataframe_to_minio(baseline_payment_df, BUCKET,
                                    secrets["minio"]["edge"]["access"], secrets["minio"]["edge"]["secret"],
                                    minio_utils.DataClassification.EDGE,
-                                   filename_prefix_override=PAYMENTS_FILENAME_PATH,
+                                   filename_prefix_override=PAYMENTS_BASELINE_FILENAME_PATH,
+                                   data_versioning=False,
+                                   file_format="csv")
+
+    logging.info("Writing diff DataFrame to Minio...")
+    minio_utils.dataframe_to_minio(diff_payment_df, BUCKET,
+                                   secrets["minio"]["edge"]["access"], secrets["minio"]["edge"]["secret"],
+                                   minio_utils.DataClassification.EDGE,
+                                   filename_prefix_override=PAYMENTS_DIFF_FILENAME_PATH,
                                    data_versioning=False,
                                    file_format="csv")
     logging.info("...Done!")
