@@ -67,7 +67,9 @@ if __name__ == "__main__":
     SECRETS_PATH_VAR = "SECRETS_PATH"
 
     if SECRETS_PATH_VAR not in os.environ:
+        print("Secrets path not found!")
         sys.exit(-1)
+        
 
     secrets_path = os.environ["SECRETS_PATH"]
     secrets = json.load(open(secrets_path))
