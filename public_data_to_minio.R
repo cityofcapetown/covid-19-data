@@ -79,9 +79,8 @@ dir.create("data/private", recursive = TRUE)
 dir.create("data/staging", recursive = T)
 
 # PROCESS DATA
-
 # public announcements ---
-public_announcements <- "data/public/covid_19 announcements.xlsx"
+public_announcements <- "data/staging/covid_19 announcements.xlsx"
 minio_to_file(public_announcements,
               "covid",
               minio_key,

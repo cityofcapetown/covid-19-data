@@ -89,7 +89,7 @@ if __name__ == "__main__":
 
     CURRENT_FILENAME = "covid_19 announcements.xlsx"
     BUCKET = 'covid'
-    PUBLIC_PREFIX = "data/public/"
+    PUBLIC_PREFIX = "data/staging/"
     for attachment_path in get_attachment_file(filtered_items):
         logging.debug("Uploading '{}' to minio://covid/{}".format(attachment_path, PUBLIC_PREFIX))
         
