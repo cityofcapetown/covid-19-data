@@ -1,9 +1,9 @@
-from datetime import datetime, timedelta
 import json
 import logging
 import os
 import sys
 import tempfile
+import urllib.parse
 
 from db_utils import minio_utils
 import pandas
@@ -18,7 +18,7 @@ PROXY_ENV_VARS = ["http_proxy", "https_proxy"]
 PROXY_ENV_VARS = PROXY_ENV_VARS + list(map(lambda x: x.upper(), PROXY_ENV_VARS))
 
 SP_DOMAIN = 'http://ctappsdev.capetown.gov.za'
-SP_SITE = 'workinfo/'
+SP_SITE = '/sites/workinfo/'
 SP_LIST_NAME = 'EXPORT DATA'
 
 SOURCE_COL_NAME = "SourceUrl"
@@ -46,7 +46,7 @@ def set_env_proxy(proxy_string):
 
 
 def get_sp_site(sp_domain, sp_site, auth):
-    site_string = os.path.join(SP_DOMAIN, SP_SITE)
+    site_string = urllib.parse.urljoin(sp_domain, sp_site)
     site = Site(site_string, auth=auth)
 
     return site
@@ -54,11 +54,11 @@ def get_sp_site(sp_domain, sp_site, auth):
 
 def get_list_dfs(site, list_name, auth, proxy_dict):
     site_list = site.List(list_name).GetListItems()
-    logging.debug(f"Got '{len(site_list)}' items from '{list_name}'")
+    logging.debug(f"Got '{len(site_list)}' item(s) from '{list_name}'")
 
     for file_dict in site_list:
         file_uri = file_dict["URL Path"][3:]
-        file_url = os.path.join(SP_DOMAIN, file_uri)
+        file_url = urllib.parse.urljoin(SP_DOMAIN, file_uri)
         logging.debug(f"Fetching '{file_url}'...")
 
         resp = requests.get(file_url, auth=auth, proxies=proxy_dict)
