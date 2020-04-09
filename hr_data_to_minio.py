@@ -17,9 +17,10 @@ CITY_PROXY = "internet.capetown.gov.za:8080"
 PROXY_ENV_VARS = ["http_proxy", "https_proxy"]
 PROXY_ENV_VARS = PROXY_ENV_VARS + list(map(lambda x: x.upper(), PROXY_ENV_VARS))
 
-SP_DOMAIN = 'http://ctappsdev.capetown.gov.za'
-SP_SITE = '/sites/workinfo/'
-SP_LIST_NAME = 'EXPORT DATA'
+SP_DOMAIN = 'http://ctapps.capetown.gov.za'
+SP_SITE = '/sites/HRCovidCapacity/'
+SP_LIST_NAME = 'EXCEL FORM DATA'
+DATA_SHEET_NAME = 'DATASHEET'
 
 SOURCE_COL_NAME = "SourceUrl"
 ACCESS_COL_NAME = "AccessTimestamp"
@@ -66,13 +67,18 @@ def get_list_dfs(site, list_name, auth, proxy_dict):
         access_timestamp = pandas.Timestamp.now(tz="Africa/Johannesburg")
 
         logging.debug(f"Generating df from downloaded file")
-        with tempfile.NamedTemporaryFile(mode="wb") as name_temp_file:
-            name_temp_file.write(resp.content)
-            raw_df = pandas.read_excel(name_temp_file.name)
+        try:
+            with tempfile.NamedTemporaryFile(mode="wb") as name_temp_file:
+                name_temp_file.write(resp.content)
+                raw_df = pandas.read_excel(name_temp_file.name, sheet_name=DATA_SHEET_NAME)
 
-        logging.debug(f"Setting '{SOURCE_COL_NAME}'='{file_url}', '{ACCESS_COL_NAME}'={access_timestamp}")
-        raw_df[SOURCE_COL_NAME] = file_url
-        raw_df[ACCESS_COL_NAME] = access_timestamp
+            logging.debug(f"Setting '{SOURCE_COL_NAME}'='{file_url}', '{ACCESS_COL_NAME}'={access_timestamp}")
+            raw_df[SOURCE_COL_NAME] = file_url
+            raw_df[ACCESS_COL_NAME] = access_timestamp
+        except Exception as e:
+            logging.error(f"{e.__class__}:'{repr(e)}'")
+            logging.warning("Moving on...")
+            continue
 
         yield raw_df
 
@@ -83,6 +89,7 @@ def get_combined_list_df(site, list_name, auth, proxy_dict):
 
     # concat
     combined_df = pandas.concat(site_list_dfs)
+    logging.debug(f"combined_df.columns={combined_df.columns}")
 
     return combined_df
 
@@ -118,6 +125,7 @@ if __name__ == "__main__":
                                    minio_utils.DataClassification.EDGE,
                                    filename_prefix_override=FILENAME_PATH,
                                    data_versioning=False,
-                                   file_format="csv")
+                                   file_format="csv",
+                                   index=False)
 
     logging.info("...Done!")
