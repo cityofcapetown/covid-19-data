@@ -176,7 +176,7 @@ rsa_max_deaths <- global_timeseries_deaths %>%
   summarise(max(deaths)) %>% pull()
 
 global_deaths_since_25 <- global_timeseries_deaths %>% 
-  mutate(more_than_25 = if_else(deaths >= min(25, rsa_max), TRUE, FALSE)) %>% 
+  mutate(more_than_25 = if_else(deaths >= min(25, rsa_max_deaths), TRUE, FALSE)) %>% 
   filter(more_than_25 == TRUE) %>%
   filter(country != "Cruise Ship") %>%
   mutate(iter = 1) %>%
