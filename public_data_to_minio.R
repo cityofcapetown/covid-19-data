@@ -131,8 +131,8 @@ rsa_max <- global_timeseries_confirmed %>%
 global_ts_since_100 <- global_timeseries_confirmed %>% 
   mutate(more_than_100 = if_else(confirmed >= min(100, rsa_max), TRUE, FALSE)) %>% 
   filter(more_than_100 == TRUE) %>%
-  filter(country != "China",
-         country != "Cruise Ship") %>%
+  filter(country != "Cruise Ship",
+         country != "China") %>%
   mutate(iter = 1) %>%
   arrange(report_date) %>%
   group_by(country) %>% 
@@ -144,7 +144,6 @@ global_ts_since_100 <- global_ts_since_100 %>%
   spread(key = "country", value = "confirmed")
 
 write_csv(global_ts_since_100, "data/public/global_ts_since_100.csv")
-
 
 # r time_series_19-covid-Deaths ----------- 
 global_timeseries_deaths <- read_csv(
@@ -170,6 +169,29 @@ global_ts_sorted_deaths <- global_ts_spread_deaths %>%
   dplyr::select(names(sort(colSums(.)))) %>% 
   mutate(report_date = global_ts_spread_deaths$report_date)
 write_csv(global_ts_sorted_deaths, "data/public/global_ts_sorted_deaths.csv")
+
+# global_deaths_since_25 -------------------------
+rsa_max_deaths <- global_timeseries_deaths %>% 
+  filter(country == "South Africa") %>% 
+  summarise(max(deaths)) %>% pull()
+
+global_deaths_since_25 <- global_timeseries_deaths %>% 
+  mutate(more_than_25 = if_else(deaths >= min(25, rsa_max), TRUE, FALSE)) %>% 
+  filter(more_than_25 == TRUE) %>%
+  filter(country != "Cruise Ship") %>%
+  mutate(iter = 1) %>%
+  arrange(report_date) %>%
+  group_by(country) %>% 
+  mutate(days_since_passed_25=cumsum(iter)) %>% 
+  ungroup() %>% 
+  select(-report_date, -more_than_25, -iter) 
+
+global_deaths_since_25 <- global_deaths_since_25 %>% 
+  spread(key = "country", value = "deaths")
+
+write_csv(global_deaths_since_25, "data/public/global_deaths_since_25.csv")
+
+
 
 # r global_latest_stats -------------
 global_latest_confirmed <- global_ts_spread_confirmed %>% 
