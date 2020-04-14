@@ -95,6 +95,54 @@ write_csv(wc_all_cases, "data/private/wc_all_cases.csv")
 ct_all_cases <- wc_all_cases %>% filter(district == "City of Cape Town")
 write_csv(ct_all_cases, "data/private/ct_all_cases.csv")
 
+# WC_model_data ---------------------------
+wc_model_data_new <- "data/staging/wc_covid_scenarios.xlsx"
+minio_to_file(wc_model_data_new,
+              "covid",
+              minio_key,
+              minio_secret,
+              "EDGE",
+              minio_filename_override=wc_model_data_new)
+wc_model_data_new <- read_xlsx(wc_model_data_new)
+wc_model_data_new <- wc_model_data_new %>% 
+  mutate(key = paste(WeekStart, 
+                     NewInfections, 
+                     PositiveTests, 
+                     GeneralAdmissions, 
+                     ICUAdmissions, 
+                     GeneralBeds, 
+                     ICEBeds, 
+                     Deaths, 
+                     Scenario, sep = "|")) 
+
+wc_model_data_old <- "data/private/wc_model_data.csv"
+minio_to_file(wc_model_data_old,
+              "covid",
+              minio_key,
+              minio_secret,
+              "EDGE",
+              minio_filename_override=wc_model_data_old)
+wc_model_data_old <- read_csv(wc_model_data_old)
+wc_model_data_old <- wc_model_data_old %>% 
+  mutate(key = paste(WeekStart, 
+                     NewInfections, 
+                     PositiveTests, 
+                     GeneralAdmissions, 
+                     ICUAdmissions, 
+                     GeneralBeds, 
+                     ICEBeds, 
+                     Deaths, 
+                     Scenario, sep = "|")) 
+
+wc_model_data_new <- wc_model_data_new %>% filter(!(key %in% wc_model_data_old$key))
+if (nrow(wc_model_data_new) != 0 ) {
+  wc_model_data_new <- wc_model_data_new %>% mutate(ForecastDate = Sys.time()) %>% dplyr::select(ForecastDate, everything(), -key)
+  wc_model_data <- wc_model_data %>% bind_rows(wc_model_data_old, wc_model_data_new)
+  write_csv(wc_model_data, "data/private/wc_model_data.csv")
+}
+
+
+
 private_data_dir <- "data/private/"
 for (filename in list.files(private_data_dir)) {
   print(file.path(private_data_dir, filename))
