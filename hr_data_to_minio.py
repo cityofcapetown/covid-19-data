@@ -1,6 +1,7 @@
 import json
 import logging
 import os
+import re
 import sys
 import tempfile
 import urllib.parse
@@ -21,6 +22,7 @@ SP_DOMAIN = 'http://ctapps.capetown.gov.za'
 SP_SITE = '/sites/HRCovidCapacity/'
 SP_LIST_NAME = 'EXCEL FORM DATA'
 DATA_SHEET_NAME = 'DATASHEET'
+URL_REGEX = r'^\d+;#(.+)$'
 
 SOURCE_COL_NAME = "SourceUrl"
 ACCESS_COL_NAME = "AccessTimestamp"
@@ -57,10 +59,12 @@ def get_sp_site(sp_domain, sp_site, auth):
 def get_list_dfs(site, list_name, auth, proxy_dict):
     site_list = site.List(list_name).GetListItems()
     logging.debug(f"Got '{len(site_list)}' item(s) from '{list_name}'")
+    url_pattern = re.compile(URL_REGEX)
 
     with tempfile.TemporaryDirectory() as tempdir:
         for file_dict in site_list:
-            file_uri = file_dict["URL Path"][3:]
+            file_regex_result = url_pattern.search(file_dict["URL Path"])
+            file_uri = file_regex_result.group(1)
             file_url = urllib.parse.urljoin(SP_DOMAIN, file_uri)
             logging.debug(f"Fetching '{file_url}'...")
 
