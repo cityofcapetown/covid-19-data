@@ -111,7 +111,7 @@ wc_model_data_new <- wc_model_data_new %>%
                      GeneralAdmissions, 
                      ICUAdmissions, 
                      GeneralBeds, 
-                     ICEBeds, 
+                     ICUBeds, 
                      Deaths, 
                      Scenario, sep = "|")) 
 
@@ -130,7 +130,7 @@ wc_model_data_old <- wc_model_data_old %>%
                      GeneralAdmissions, 
                      ICUAdmissions, 
                      GeneralBeds, 
-                     ICEBeds, 
+                     ICUBeds, 
                      Deaths, 
                      Scenario, sep = "|")) 
 
