@@ -26,7 +26,7 @@ SP_REGEX = r'^\d+;#(.+)$'
 SOURCE_COL_NAME = "SourceUrl"
 ACCESS_COL_NAME = "AccessTimestamp"
 
-SP_XML_LIST_NAME = 'COVID-19 Online Business Capacity Form'
+SP_XML_LIST_NAME = 'HR COVID Capacity Online Form'
 XML_URL_COL_NAME = 'URL Path'
 XML_ID_COL_NAME = 'Unique Id'
 XML_DATE_COL_NAME = 'Date'
