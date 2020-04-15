@@ -20,12 +20,21 @@ PROXY_ENV_VARS = PROXY_ENV_VARS + list(map(lambda x: x.upper(), PROXY_ENV_VARS))
 
 SP_DOMAIN = 'http://ctapps.capetown.gov.za'
 SP_SITE = '/sites/HRCovidCapacity/'
-SP_LIST_NAME = 'EXCEL FORM DATA'
-DATA_SHEET_NAME = 'DATASHEET'
-URL_REGEX = r'^\d+;#(.+)$'
-
+SP_EXCEL_LIST_NAME = 'EXCEL FORM DATA'
+DATA_SHEET_NAMES = ['owssvr', 'DATASHEET']
+SP_REGEX = r'^\d+;#(.+)$'
 SOURCE_COL_NAME = "SourceUrl"
 ACCESS_COL_NAME = "AccessTimestamp"
+
+SP_XML_LIST_NAME = 'COVID-19 Online Business Capacity Form'
+XML_URL_COL_NAME = 'URL Path'
+XML_ID_COL_NAME = 'Unique Id'
+XML_DATE_COL_NAME = 'Date'
+XML_FIELD_NAMES = [
+    'Manager', 'Manager Staff No', 'Designation', 'Department', 'Evaluation',
+    'Employee Name', 'Employee No', 'Categories', XML_DATE_COL_NAME, SOURCE_COL_NAME, ACCESS_COL_NAME
+]
+ISO8601_FORMAT = "%Y-%m-%d %H:%M:%S"
 
 BUCKET = 'covid'
 HR_BACKUP_PREFIX = "data/staging/hr_data_backup/"
@@ -56,10 +65,55 @@ def get_sp_site(sp_domain, sp_site, auth):
     return site
 
 
-def get_list_dfs(site, list_name, auth, proxy_dict):
+def get_xml_list_dfs(site, list_name):
+    access_timestamp = pandas.Timestamp.now(tz="Africa/Johannesburg")
+    xml_list = site.List(list_name).GetListItems()
+    xml_df = pandas.DataFrame(xml_list)
+    logging.debug(f"Got {xml_df.shape[0]} XML entries")
+
+    url_pattern = re.compile(SP_REGEX)
+    logging.debug(f"Setting '{SOURCE_COL_NAME}'='URL Path', '{ACCESS_COL_NAME}'={access_timestamp}")
+
+    xml_df[SOURCE_COL_NAME] = xml_df[XML_URL_COL_NAME].str.extract(
+        url_pattern, expand=False
+    ).apply(
+        lambda file_uri: urllib.parse.urljoin(SP_DOMAIN, file_uri)
+    )
+    xml_df[ACCESS_COL_NAME] = access_timestamp
+
+    # Backing up the XML rows into Minio
+    with tempfile.TemporaryDirectory() as tempdir:
+        for row in xml_df.itertuples(index=False):
+            row_series = pandas.DataFrame({
+                col: [val]
+                for col, val in zip(xml_df.columns, row)
+            }).iloc[0]
+
+            id_search = url_pattern.search(row_series['Unique Id'])
+            unique_id = id_search.group(1)
+            logging.debug(f"Backing up '{unique_id}.json' to Minio...")
+            local_path = os.path.join(tempdir, unique_id)
+            with open(local_path, "w") as json_file:
+                row_series.to_json(json_file)
+
+            minio_utils.file_to_minio(
+                filename=local_path,
+                filename_prefix_override=HR_BACKUP_PREFIX,
+                minio_bucket=BUCKET,
+                minio_key=secrets["minio"]["edge"]["access"],
+                minio_secret=secrets["minio"]["edge"]["secret"],
+                data_classification=minio_utils.DataClassification.EDGE,
+            )
+    # Making the XML file more like the others
+    xml_df[XML_DATE_COL_NAME] = xml_df[XML_DATE_COL_NAME].dt.strftime(ISO8601_FORMAT)
+
+    return xml_df[XML_FIELD_NAMES]
+
+
+def get_excel_list_dfs(site, list_name, auth, proxy_dict):
     site_list = site.List(list_name).GetListItems()
     logging.debug(f"Got '{len(site_list)}' item(s) from '{list_name}'")
-    url_pattern = re.compile(URL_REGEX)
+    url_pattern = re.compile(SP_REGEX)
 
     with tempfile.TemporaryDirectory() as tempdir:
         for file_dict in site_list:
@@ -87,27 +141,32 @@ def get_list_dfs(site, list_name, auth, proxy_dict):
                 data_classification=minio_utils.DataClassification.EDGE,
             )
 
-            try:
-                logging.debug(f"Generating df from downloaded file")
-                raw_df = pandas.read_excel(local_path, sheet_name=DATA_SHEET_NAME)
+            logging.debug(f"Generating df from downloaded file")
+            for data_sheet_name in DATA_SHEET_NAMES:
+                try:
+                    logging.debug(f"Trying sheetname '{data_sheet_name}'")
+                    raw_df = pandas.read_excel(local_path, sheet_name=data_sheet_name)
 
-                logging.debug(f"Setting '{SOURCE_COL_NAME}'='{file_url}', '{ACCESS_COL_NAME}'={access_timestamp}")
-                raw_df[SOURCE_COL_NAME] = file_url
-                raw_df[ACCESS_COL_NAME] = access_timestamp
-            except Exception as e:
-                logging.error(f"{e.__class__}:'{repr(e)}'")
-                logging.warning("Moving on...")
-                continue
+                    logging.debug(f"Setting '{SOURCE_COL_NAME}'='{file_url}', '{ACCESS_COL_NAME}'={access_timestamp}")
+                    raw_df[SOURCE_COL_NAME] = file_url
+                    raw_df[ACCESS_COL_NAME] = access_timestamp
+                except Exception as e:
+                    logging.error(f"{e.__class__}:'{repr(e)}'")
+                    logging.warning("Moving on...")
+                    continue
 
-            yield raw_df
+                yield raw_df
 
 
-def get_combined_list_df(site, list_name, auth, proxy_dict):
+def get_combined_list_df(site, auth, proxy_dict):
+    # Get XML files
+    xml_list_df = get_xml_list_dfs(site, SP_XML_LIST_NAME)
+
     # setup file generator
-    site_list_dfs = get_list_dfs(site, list_name, auth, proxy_dict)
+    site_list_dfs = get_excel_list_dfs(site, SP_EXCEL_LIST_NAME, auth, proxy_dict)
 
     # concat
-    combined_df = pandas.concat(site_list_dfs)
+    combined_df = pandas.concat([xml_list_df, *site_list_dfs])
 
     return combined_df
 
@@ -135,7 +194,7 @@ if __name__ == "__main__":
 
     logging.info("Getting combined df...")
     sp_site = get_sp_site(SP_DOMAIN, SP_SITE, sp_auth)
-    combined_df = get_combined_list_df(sp_site, SP_LIST_NAME, sp_auth, city_proxy_dict)
+    combined_df = get_combined_list_df(sp_site, sp_auth, city_proxy_dict)
 
     logging.info("Writing to Minio...")
     minio_utils.dataframe_to_minio(combined_df, BUCKET,
@@ -145,5 +204,4 @@ if __name__ == "__main__":
                                    data_versioning=False,
                                    file_format="csv",
                                    index=False)
-
     logging.info("...Done!")
