@@ -23,7 +23,7 @@ startup_cmd = (
     "pip3 install $DB_UTILS_LOCATION/$DB_UTILS_PKG"
 )
 
-dag_interval = timedelta(hours=1)
+dag_interval = "55 * * * *"
 dag = DAG('covid-19-hr-data',
           start_date=DAG_STARTDATE,
           catchup=False,
