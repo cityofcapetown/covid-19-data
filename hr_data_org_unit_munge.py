@@ -17,6 +17,7 @@ HR_TRANSACTION_DATE = 'Date'
 HR_TRANSACTION_EVALUATION = 'Evaluation'
 HR_TRANSACTIONAL_COLUMNS = [HR_STAFFNUMBER, 'Categories', HR_TRANSACTION_DATE, HR_TRANSACTION_EVALUATION]
 
+DATE_COL_FORMAT = "%Y-%m-%d"
 HR_ORG_UNIT_COLUMNS = ['Org Unit Name', 'Directorate', 'Department', 'Branch', 'Section']
 
 HR_ORG_UNIT_STATUSES = "data/private/business_continuity_org_unit_statuses"
@@ -56,7 +57,9 @@ def merge_df(hr_df, hr_master_df):
 
 def get_org_unit_df(combined_df):
     # We only care about dates
-    combined_df[HR_TRANSACTION_DATE] = pandas.to_datetime(combined_df[HR_TRANSACTION_DATE]).dt.date
+    combined_df[HR_TRANSACTION_DATE] = pandas.to_datetime(
+        combined_df[HR_TRANSACTION_DATE]
+    ).dt.strftime(DATE_COL_FORMAT)
 
     groupby_cols = [*HR_ORG_UNIT_COLUMNS, HR_TRANSACTION_DATE]
     flattened_org_unit_df = (
@@ -67,7 +70,7 @@ def get_org_unit_df(combined_df):
                    # getting back to a dataframe
                    .reset_index()
                    # cleaning up the new index that appears
-                   .drop(f"level_{groupby_cols}", axis='columns')
+                   .drop(f"level_{len(groupby_cols)}", axis='columns')
     )
     logging.debug(f"flattened_org_unit_df.head(5)=\n{flattened_org_unit_df.head(5)}")
 
