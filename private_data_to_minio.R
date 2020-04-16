@@ -105,13 +105,13 @@ minio_to_file(wc_model_data_new,
               minio_filename_override=wc_model_data_new)
 wc_model_data_new <- read_xlsx(wc_model_data_new)
 wc_model_data_new <- wc_model_data_new %>% 
-  mutate(key = paste(WeekStart, 
+  mutate(key = paste(TimeInterval, 
                      NewInfections, 
                      PositiveTests, 
                      GeneralAdmissions, 
                      ICUAdmissions, 
-                     GeneralBeds, 
-                     ICUBeds, 
+                     GeneralBedsOccupied, 
+                     ICUBedsOccupied, 
                      Deaths, 
                      Scenario, sep = "|")) 
 
@@ -124,13 +124,13 @@ minio_to_file(wc_model_data_old,
               minio_filename_override=wc_model_data_old)
 wc_model_data_old <- read_csv(wc_model_data_old)
 wc_model_data_old <- wc_model_data_old %>% 
-  mutate(key = paste(WeekStart, 
+  mutate(key = paste(TimeInterval, 
                      NewInfections, 
                      PositiveTests, 
                      GeneralAdmissions, 
                      ICUAdmissions, 
-                     GeneralBeds, 
-                     ICUBeds, 
+                     GeneralBedsOccupied, 
+                     ICUBedsOccupied, 
                      Deaths, 
                      Scenario, sep = "|")) 
 
