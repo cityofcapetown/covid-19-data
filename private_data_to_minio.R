@@ -107,12 +107,11 @@ wc_model_data_new <- read_xlsx(wc_model_data_new)
 wc_model_data_new <- wc_model_data_new %>% 
   mutate(key = paste(TimeInterval, 
                      NewInfections, 
-                     PositiveTests, 
-                     GeneralAdmissions, 
-                     ICUAdmissions, 
-                     GeneralBedsOccupied, 
-                     ICUBedsOccupied, 
-                     Deaths, 
+                     NewGeneralAdmissions, 
+                     NewICUAdmissions, 
+                     GeneralBedNeed, 
+                     ICUBedNeed, 
+                     NewDeaths, 
                      Scenario, sep = "|")) 
 
 wc_model_data_old <- "data/private/wc_model_data.csv"
@@ -126,22 +125,24 @@ wc_model_data_old <- read_csv(wc_model_data_old)
 wc_model_data_old <- wc_model_data_old %>% 
   mutate(key = paste(TimeInterval, 
                      NewInfections, 
-                     PositiveTests, 
-                     GeneralAdmissions, 
-                     ICUAdmissions, 
-                     GeneralBedsOccupied, 
-                     ICUBedsOccupied, 
-                     Deaths, 
+                     NewGeneralAdmissions, 
+                     NewICUAdmissions, 
+                     GeneralBedNeed, 
+                     ICUBedNeed, 
+                     NewDeaths, 
                      Scenario, sep = "|")) 
 
 wc_model_data_new <- wc_model_data_new %>% filter(!(key %in% wc_model_data_old$key))
 if (nrow(wc_model_data_new) != 0 ) {
   wc_model_data_new <- wc_model_data_new %>% mutate(ForecastDate = Sys.time()) %>% dplyr::select(ForecastDate, everything(), -key)
-  wc_model_data <- wc_model_data %>% bind_rows(wc_model_data_old, wc_model_data_new)
+  wc_model_data_old <- wc_model_data_old %>%dplyr::select(-key)
+  
+  wc_model_data <- bind_rows(wc_model_data_old, wc_model_data_new)
   write_csv(wc_model_data, "data/private/wc_model_data.csv")
 }
 
 
+# SEND DATA TO MINIO ==================================
 
 private_data_dir <- "data/private/"
 for (filename in list.files(private_data_dir)) {
