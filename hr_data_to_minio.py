@@ -141,15 +141,19 @@ def get_excel_list_dfs(site, list_name, auth, proxy_dict):
                 data_classification=minio_utils.DataClassification.EDGE,
             )
 
-            logging.debug(f"Generating df from downloaded file")
-            for data_sheet_name, raw_df in pandas.read_excel(local_path, sheet_name=None).items():
-                logging.debug(f"Reading sheet'{data_sheet_name}'")
+            if local_path.endswith("xlsx") or local_path.endswith("xls"):
+                logging.debug(f"Generating df from downloaded file")
+                for data_sheet_name, raw_df in pandas.read_excel(local_path, sheet_name=None).items():
+                    logging.debug(f"Reading sheet'{data_sheet_name}'")
 
-                logging.debug(f"Setting '{SOURCE_COL_NAME}'='{file_url}', '{ACCESS_COL_NAME}'={access_timestamp}")
-                raw_df[SOURCE_COL_NAME] = file_url
-                raw_df[ACCESS_COL_NAME] = access_timestamp
+                    logging.debug(f"Setting '{SOURCE_COL_NAME}'='{file_url}', '{ACCESS_COL_NAME}'={access_timestamp}")
+                    raw_df[SOURCE_COL_NAME] = file_url
+                    raw_df[ACCESS_COL_NAME] = access_timestamp
 
-                yield raw_df
+                    yield raw_df
+            else:
+                logging.debug("Not an Excel file, continuing..")
+                continue
 
 
 def get_combined_list_df(site, auth, proxy_dict):
