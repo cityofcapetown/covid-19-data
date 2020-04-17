@@ -27,7 +27,7 @@ VALID_STATUSES = (
     r"Absent from work \(unauthorised\)",
     "Quarantine leave – working remotely",
     "Quarantine leave – unable to work remotely",
-    "Quarantine leave – working remotely, Covid-19 exposure / isolation",
+    "Quarantine leave – working remotely, COVID 19 exposure / isolation",
     r"Sick \(linked to Covid-19\)",
     r"Sick \(NOT linked to Covid-19\)",
     "On Lockdown leave – unable to work remotely",
