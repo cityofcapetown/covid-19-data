@@ -15,7 +15,9 @@ HR_MASTER_FILENAME_PATH = "data/private/city_people.csv"
 HR_STAFFNUMBER = 'StaffNumber'
 HR_TRANSACTION_DATE = 'Date'
 HR_TRANSACTION_EVALUATION = 'Evaluation'
-HR_TRANSACTIONAL_COLUMNS = [HR_STAFFNUMBER, 'Categories', HR_TRANSACTION_DATE, HR_TRANSACTION_EVALUATION]
+HR_LOCATION = "LocationWkt"
+HR_CATEGORIES = 'Categories'
+HR_TRANSACTIONAL_COLUMNS = [HR_STAFFNUMBER, HR_CATEGORIES, HR_TRANSACTION_DATE, HR_TRANSACTION_EVALUATION]
 
 DATE_COL_FORMAT = "%Y-%m-%d"
 HR_ORG_UNIT_COLUMNS = ['Org Unit Name', 'Directorate', 'Department', 'Branch', 'Section']
@@ -64,9 +66,12 @@ def get_org_unit_df(combined_df):
     groupby_cols = [*HR_ORG_UNIT_COLUMNS, HR_TRANSACTION_DATE]
     flattened_org_unit_df = (
                    # select the most common value in the evaluation col
-        combined_df.groupby(groupby_cols, sort=False).apply(lambda df: df[HR_TRANSACTION_EVALUATION].mode())
-                   # rename the evaluation column
-                   .rename(HR_TRANSACTION_EVALUATION)
+        combined_df.groupby(groupby_cols, sort=False)
+                   .apply(lambda df: pandas.DataFrame({
+                        HR_TRANSACTION_EVALUATION: df[HR_TRANSACTION_EVALUATION].mode(),
+                        HR_LOCATION: df[HR_LOCATION].mode(),
+                        **df[HR_CATEGORIES].value_counts().to_dict()
+                    }))
                    # getting back to a dataframe
                    .reset_index()
                    # cleaning up the new index that appears
@@ -74,7 +79,15 @@ def get_org_unit_df(combined_df):
     )
     logging.debug(f"flattened_org_unit_df.head(5)=\n{flattened_org_unit_df.head(5)}")
 
-    return flattened_org_unit_df
+    melted_df = flattened_org_unit_df.melt(
+        id_vars=[*groupby_cols, HR_TRANSACTION_EVALUATION, HR_LOCATION],
+        var_name=HR_CATEGORIES,
+        value_name="Count"
+    )
+    melted_df["StatusCount"].fillna(0, inplace=True)
+    logging.debug(f"melted_df.head(5)=\n{melted_df.head(5)}")
+
+    return melted_df
 
 
 if __name__ == "__main__":
