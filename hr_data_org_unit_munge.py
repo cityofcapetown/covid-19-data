@@ -82,7 +82,7 @@ def get_org_unit_df(combined_df):
     melted_df = flattened_org_unit_df.melt(
         id_vars=[*groupby_cols, HR_TRANSACTION_EVALUATION, HR_LOCATION],
         var_name=HR_CATEGORIES,
-        value_name="Count"
+        value_name="StatusCount"
     )
     melted_df["StatusCount"].fillna(0, inplace=True)
     logging.debug(f"melted_df.head(5)=\n{melted_df.head(5)}")
@@ -124,10 +124,10 @@ if __name__ == "__main__":
     # Writing result out
     logging.info("Writing cleaned HR Form DataFrame to Minio...")
     minio_utils.dataframe_to_minio(org_unit_df, BUCKET,
-                                   secrets["minio"]["edge"]["access"],
-                                   secrets["minio"]["edge"]["secret"],
-                                   minio_utils.DataClassification.EDGE,
-                                   filename_prefix_override=HR_ORG_UNIT_STATUSES,
-                                   data_versioning=False,
-                                   file_format="csv")
+                                    secrets["minio"]["edge"]["access"],
+                                    secrets["minio"]["edge"]["secret"],
+                                    minio_utils.DataClassification.EDGE,
+                                    filename_prefix_override=HR_ORG_UNIT_STATUSES,
+                                    data_versioning=False,
+                                    file_format="csv")
     logging.info("...Done!")
