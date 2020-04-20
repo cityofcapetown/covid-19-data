@@ -96,5 +96,6 @@ hr_data_org_unit_munge_operator = covid_19_data_task(HR_ORG_UNIT_MUNGE_TASK)
 # Dependencies
 hr_data_fetch_operator >> hr_data_munge_operator
 hr_master_data_fetch_operator >> hr_master_data_munge_operator
+hr_master_data_munge_operator >> hr_data_munge_operator
 hr_data_munge_operator >> hr_data_org_unit_munge_operator
 hr_master_data_munge_operator >> hr_data_org_unit_munge_operator
