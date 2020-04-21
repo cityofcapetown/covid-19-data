@@ -20,8 +20,7 @@ HR_EXPECTED_STAFFNUMBER = 'StaffNumber'
 
 ESSENTIAL_COL = "EssentialStaff"
 ESS_COLUMNS = ["Persno",
-               "Approver Staff No", "Approver Name",
-               "Replacement Approver Staff No", "Replacement Approver Name"]
+               "Approver Staff No", "Approver Name",]
 
 HR_MASTER_FILENAME_PATH = "data/private/city_people"
 
