@@ -13,9 +13,10 @@ HR_FORM_FILENAME_PATH = "data/private/hr_data_complete.csv"
 HR_MASTER_FILENAME_PATH = "data/private/city_people.csv"
 
 HR_TRANSACTIONAL_STAFFNUMBER = 'Employee No'
-HR_TRANSACTION_DATE = 'Date'
-HR_TRANSACTIONAL_COLUMNS = [HR_TRANSACTIONAL_STAFFNUMBER, 'Categories', HR_TRANSACTION_DATE, 'Evaluation']
 HR_MASTER_STAFFNUMBER = 'StaffNumber'
+HR_TRANSACTION_DATE = 'Date'
+HR_TRANSACTIONAL_COLUMNS = [HR_TRANSACTIONAL_STAFFNUMBER, 'Categories', HR_TRANSACTION_DATE, 'Evaluation',
+                            'Manager', 'Manager Staff No']
 
 HR_COLUMNS_TO_FLATTEN = {HR_TRANSACTIONAL_STAFFNUMBER, 'Categories', 'Employee Name'}
 
@@ -49,6 +50,11 @@ HR_TRANSACTIONAL_COLUMN_VERIFICATION_FUNCS = {
     "Categories": lambda col: (col.str.match(STATUSES_VALIDITY_PATTERN) == True),
     HR_TRANSACTION_DATE: lambda col: pandas.to_datetime(col, format=ISO8601_FORMAT, errors='coerce').notna(),
     "Evaluation": lambda col: (col.str.match(EVALUATION_VALIDITY_PATTERN) == True)
+}
+HR_TRANSACTIONAL_COLUMN_RENAME_DICT = {
+    HR_TRANSACTIONAL_STAFFNUMBER: HR_MASTER_STAFFNUMBER,
+    'Manager': 'Approver',
+    'Manager Staff No': 'ApproverStaffNumber'
 }
 
 CLEANED_HR_TRANSACTIONAL = "data/private/business_continuity_people_status"
@@ -129,7 +135,7 @@ def clean_hr_form(hr_df, master_df):
     logging.debug(f"cleaned_hr_df.shape={cleaned_hr_df.shape}")
 
     # Checking membership in master data file
-    cleaned_hr_df.rename({HR_TRANSACTIONAL_STAFFNUMBER: HR_MASTER_STAFFNUMBER}, axis='columns', inplace=True)
+    cleaned_hr_df.rename(HR_TRANSACTIONAL_COLUMN_RENAME_DICT, axis='columns', inplace=True)
     in_master = cleaned_hr_df[HR_MASTER_STAFFNUMBER].isin(master_df[HR_MASTER_STAFFNUMBER].astype('str'))
     if in_master.sum() < cleaned_hr_df.shape[0]:
         logging.warning(
@@ -161,7 +167,7 @@ def update_hr_form(cleaned_hr_df):
     dummy_date_col = 'temp_date'
     combined_df[dummy_date_col] = pandas.to_datetime(combined_df[HR_TRANSACTION_DATE]).dt.date
 
-    # First, sorting in terms of the timestamp, then depuping on the *date*,
+    # First, sorting in terms of the timestamp, then deduping on the *date*,
     # this should keep the most recent record for each day
     deduped_df = combined_df.sort_values(
         by=[HR_TRANSACTION_DATE], ascending=False
