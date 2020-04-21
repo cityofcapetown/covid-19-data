@@ -69,6 +69,8 @@ def get_org_unit_df(combined_df):
     # Apparently what is needed to fill NaN columns
     filled_df = combined_df.copy()
     filled_df.loc[:, HR_ORG_UNIT_COLUMNS] = filled_df.loc[:, HR_ORG_UNIT_COLUMNS].fillna("N/A")
+    logging.debug(f"filled_df.head(5)=\n{filled_df.head(5)}")
+    logging.debug(f"filled_df.shape=\n{filled_df.shape}")
 
     groupby_cols = [*HR_ORG_UNIT_COLUMNS, HR_TRANSACTION_DATE]
     flattened_org_unit_df = (
@@ -85,13 +87,14 @@ def get_org_unit_df(combined_df):
             .drop(f"level_{len(groupby_cols)}", axis='columns')
     )
     logging.debug(f"flattened_org_unit_df.head(5)=\n{flattened_org_unit_df.head(5)}")
+    logging.debug(f"flattened_org_unit_df.shape=\n{flattened_org_unit_df.shape}")
 
     melted_df = flattened_org_unit_df.melt(
         id_vars=[*groupby_cols, HR_TRANSACTION_EVALUATION, HR_LOCATION],
         var_name=HR_CATEGORIES,
         value_name="StatusCount"
     )
-    melted_df["StatusCount"].fillna(0, inplace=True)
+    melted_df.loc[:, "StatusCount"] = melted_df.loc[:, "StatusCount"].fillna(0)
     logging.debug(f"melted_df.head(5)=\n{melted_df.head(5)}")
     logging.debug(f"melted_df.columns=\n{melted_df.columns}")
 
