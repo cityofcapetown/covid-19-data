@@ -66,12 +66,14 @@ def get_org_unit_df(combined_df):
         combined_df[HR_TRANSACTION_DATE]
     ).dt.strftime(DATE_COL_FORMAT)
 
-    groupby_cols = [*HR_ORG_UNIT_COLUMNS, HR_TRANSACTION_DATE]
-    combined_df[groupby_cols].fillna("N/A", inplace=True)
+    # Apparently what is needed to fill NaN columns
+    filled_df = combined_df.copy()
+    filled_df.loc[:, HR_ORG_UNIT_COLUMNS] = filled_df.loc[:, HR_ORG_UNIT_COLUMNS].fillna("N/A")
 
+    groupby_cols = [*HR_ORG_UNIT_COLUMNS, HR_TRANSACTION_DATE]
     flattened_org_unit_df = (
         # select the most common value in the evaluation col
-        combined_df.groupby(groupby_cols, sort=False)
+        filled_df.groupby(groupby_cols, sort=False)
             .apply(lambda df: pandas.DataFrame({
                 HR_TRANSACTION_EVALUATION: df[HR_TRANSACTION_EVALUATION].mode(),
                 HR_LOCATION: df[HR_LOCATION].mode(),
