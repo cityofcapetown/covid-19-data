@@ -43,7 +43,7 @@ FILENAME_PATH = "data/private/hr_data_complete"
 
 def get_auth_objects(username, password):
     auth = HttpNtlmAuth(f'{CITY_DOMAIN}\\{username}', password)
-    proxy_string = f'http://{secrets["proxy"]["username"]}:{secrets["proxy"]["password"]}@{CITY_PROXY}'
+    proxy_string = f'http://{username}:{password}@{CITY_PROXY}'
     proxy_dict = {
         "http": proxy_string,
         "https": proxy_string
@@ -110,9 +110,7 @@ def get_xml_list_dfs(site, list_name):
     return xml_df[XML_FIELD_NAMES]
 
 
-def get_excel_list_dfs(site, list_name, auth, proxy_dict):
-    site_list = site.List(list_name).GetListItems()
-    logging.debug(f"Got '{len(site_list)}' item(s) from '{list_name}'")
+def get_excel_list_dfs(site_list, auth, proxy_dict, minio_access, minio_secret):
     url_pattern = re.compile(SP_REGEX)
 
     with tempfile.TemporaryDirectory() as tempdir:
@@ -136,8 +134,8 @@ def get_excel_list_dfs(site, list_name, auth, proxy_dict):
                 filename=local_path,
                 filename_prefix_override=HR_BACKUP_PREFIX,
                 minio_bucket=BUCKET,
-                minio_key=secrets["minio"]["edge"]["access"],
-                minio_secret=secrets["minio"]["edge"]["secret"],
+                minio_key=minio_access,
+                minio_secret=minio_secret,
                 data_classification=minio_utils.DataClassification.EDGE,
             )
 
@@ -156,12 +154,14 @@ def get_excel_list_dfs(site, list_name, auth, proxy_dict):
                 continue
 
 
-def get_combined_list_df(site, auth, proxy_dict):
+def get_combined_list_df(site, auth, proxy_dict, minio_access, minio_secret):
     # Get XML files
     xml_list_df = get_xml_list_dfs(site, SP_XML_LIST_NAME)
 
     # setup file generator
-    site_list_dfs = get_excel_list_dfs(site, SP_EXCEL_LIST_NAME, auth, proxy_dict)
+    site_list = site.List(SP_EXCEL_LIST_NAME).GetListItems()
+    logging.debug(f"Got '{len(site_list)}' item(s) from '{SP_EXCEL_LIST_NAME}'")
+    site_list_dfs = get_excel_list_dfs(site_list, auth, proxy_dict, minio_access, minio_secret)
 
     # concat
     combined_df = pandas.concat([xml_list_df, *site_list_dfs])
@@ -192,7 +192,8 @@ if __name__ == "__main__":
 
     logging.info("Getting combined df...")
     sp_site = get_sp_site(SP_DOMAIN, SP_SITE, sp_auth)
-    combined_df = get_combined_list_df(sp_site, sp_auth, city_proxy_dict)
+    combined_df = get_combined_list_df(sp_site, sp_auth, city_proxy_dict,
+                                       secrets["minio"]["edge"]["access"], secrets["minio"]["edge"]["secret"])
 
     logging.info("Writing to Minio...")
     minio_utils.dataframe_to_minio(combined_df, BUCKET,

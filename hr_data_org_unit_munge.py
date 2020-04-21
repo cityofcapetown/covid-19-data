@@ -20,7 +20,10 @@ HR_CATEGORIES = 'Categories'
 HR_TRANSACTIONAL_COLUMNS = [HR_STAFFNUMBER, HR_CATEGORIES, HR_TRANSACTION_DATE, HR_TRANSACTION_EVALUATION]
 
 DATE_COL_FORMAT = "%Y-%m-%d"
-HR_ORG_UNIT_COLUMNS = ['Org Unit Name', 'Directorate', 'Department', 'Branch', 'Section']
+HR_ORG_UNIT_COLUMNS = [
+    'Org Unit Name', 'Directorate', 'Department', 'Branch', 'Section',
+    'Division', 'Div Sub Area', 'Unit', 'Subunit'
+]
 
 HR_ORG_UNIT_STATUSES = "data/private/business_continuity_org_unit_statuses"
 
@@ -64,18 +67,20 @@ def get_org_unit_df(combined_df):
     ).dt.strftime(DATE_COL_FORMAT)
 
     groupby_cols = [*HR_ORG_UNIT_COLUMNS, HR_TRANSACTION_DATE]
+    combined_df[groupby_cols].fillna("N/A", inplace=True)
+
     flattened_org_unit_df = (
-                   # select the most common value in the evaluation col
+        # select the most common value in the evaluation col
         combined_df.groupby(groupby_cols, sort=False)
-                   .apply(lambda df: pandas.DataFrame({
-                        HR_TRANSACTION_EVALUATION: df[HR_TRANSACTION_EVALUATION].mode(),
-                        HR_LOCATION: df[HR_LOCATION].mode(),
-                        **df[HR_CATEGORIES].value_counts().to_dict()
-                    }))
-                   # getting back to a dataframe
-                   .reset_index()
-                   # cleaning up the new index that appears
-                   .drop(f"level_{len(groupby_cols)}", axis='columns')
+            .apply(lambda df: pandas.DataFrame({
+                HR_TRANSACTION_EVALUATION: df[HR_TRANSACTION_EVALUATION].mode(),
+                HR_LOCATION: df[HR_LOCATION].mode(),
+                **df[HR_CATEGORIES].value_counts().to_dict()
+            }))
+            # getting back to a dataframe
+            .reset_index()
+            # cleaning up the new index that appears
+            .drop(f"level_{len(groupby_cols)}", axis='columns')
     )
     logging.debug(f"flattened_org_unit_df.head(5)=\n{flattened_org_unit_df.head(5)}")
 
@@ -86,6 +91,7 @@ def get_org_unit_df(combined_df):
     )
     melted_df["StatusCount"].fillna(0, inplace=True)
     logging.debug(f"melted_df.head(5)=\n{melted_df.head(5)}")
+    logging.debug(f"melted_df.columns=\n{melted_df.columns}")
 
     return melted_df
 
@@ -124,10 +130,10 @@ if __name__ == "__main__":
     # Writing result out
     logging.info("Writing cleaned HR Form DataFrame to Minio...")
     minio_utils.dataframe_to_minio(org_unit_df, BUCKET,
-                                    secrets["minio"]["edge"]["access"],
-                                    secrets["minio"]["edge"]["secret"],
-                                    minio_utils.DataClassification.EDGE,
-                                    filename_prefix_override=HR_ORG_UNIT_STATUSES,
-                                    data_versioning=False,
-                                    file_format="csv")
+                                   secrets["minio"]["edge"]["access"],
+                                   secrets["minio"]["edge"]["secret"],
+                                   minio_utils.DataClassification.EDGE,
+                                   filename_prefix_override=HR_ORG_UNIT_STATUSES,
+                                   data_versioning=False,
+                                   file_format="csv")
     logging.info("...Done!")

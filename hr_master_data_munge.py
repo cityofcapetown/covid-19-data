@@ -13,9 +13,15 @@ HR_FORM_FILENAME_PATH = "data/private/hr_data_complete.csv"
 
 HR_MASTER_INGESTION_FILENAME_PATH = "data/private/city_employee_master_data.csv"
 HR_MASTER_LOCATION_FILENAME_PATH = "data/private/city_people_locations.csv"
+HR_MASTER_ESS_FILENAME_PATH = "data/private/hr_data_ess_staff.csv"
 
 HR_MASTER_STAFFNUMBER = 'Persno'
-HR_EXCPECTED_STAFFNUMBER = 'StaffNumber'
+HR_EXPECTED_STAFFNUMBER = 'StaffNumber'
+
+ESSENTIAL_COL = "EssentialStaff"
+ESS_COLUMNS = ["Persno",
+               "Approver Staff No", "Approver Name",
+               "Replacement Approver Staff No", "Replacement Approver Name"]
 
 HR_MASTER_FILENAME_PATH = "data/private/city_people"
 
@@ -43,18 +49,35 @@ def merge_in_location_data(master_df, location_df):
     employee_master_with_loc_df = master_df.merge(
         location_df,
         left_on=HR_MASTER_STAFFNUMBER,
-        right_on=HR_EXCPECTED_STAFFNUMBER,
+        right_on=HR_EXPECTED_STAFFNUMBER,
         validate="one_to_one"
-    ).drop([HR_MASTER_STAFFNUMBER], axis='columns')
+    )
 
     return employee_master_with_loc_df
 
 
+def merge_in_ess_data(master_df, ess_df):
+    # Marking essential staff
+    employee_master_with_ess_df = master_df.copy().assign(
+        **{ESSENTIAL_COL: master_df[HR_MASTER_STAFFNUMBER].isin(ess_df[HR_MASTER_STAFFNUMBER])}
+    ).merge(
+        ess_df[ESS_COLUMNS],
+        left_on=HR_MASTER_STAFFNUMBER,
+        right_on=HR_MASTER_STAFFNUMBER,
+        validate="one_to_one"
+    )
+    logging.debug(
+        f"employee_master_with_ess_df['{ESSENTIAL_COL}'].sum()={employee_master_with_ess_df[ESSENTIAL_COL].sum()}"
+    )
+
+    return employee_master_with_ess_df
+
+
 def validate_hr_data(master_df):
     assert (
-        master_df.shape[0] == master_df[HR_MASTER_STAFFNUMBER].nunique(),
+        master_df.shape[0] == master_df[HR_EXPECTED_STAFFNUMBER].nunique(),
         (f"master_df.shape[0]={master_df.shape[0]} vs "
-         f"master_df[HR_MASTER_STAFFNUMBER].nunique()={master_df[HR_MASTER_STAFFNUMBER].nunique()}")
+         f"master_df[HR_MASTER_STAFFNUMBER].nunique()={master_df[HR_EXPECTED_STAFFNUMBER].nunique()}")
     )
 
 
@@ -79,18 +102,26 @@ if __name__ == "__main__":
     hr_master_location_df = get_data_df(HR_MASTER_LOCATION_FILENAME_PATH,
                                secrets["minio"]["edge"]["access"],
                                secrets["minio"]["edge"]["secret"])
+    hr_master_ess_df = get_data_df(HR_MASTER_ESS_FILENAME_PATH,
+                                   secrets["minio"]["edge"]["access"],
+                                   secrets["minio"]["edge"]["secret"])
     logging.info("Fetch[ed] HR master data")
 
+    logging.info("Merg[ing] in ESS data")
+    hr_master_temp_df = merge_in_ess_data(hr_master_ingestion_df, hr_master_ess_df)
+    logging.info("Merg[ed] in HR ESS data")
+
     logging.info("Merg[ing] in location data")
-    hr_master_df = merge_in_location_data(hr_master_ingestion_df, hr_master_location_df)
+    hr_master_df = merge_in_location_data(hr_master_temp_df, hr_master_location_df)
     logging.info("Merg[ed] in HR Master data")
 
     logging.info("Validat[ing] HR master data")
-    validate_hr_data(hr_master_ingestion_df)
+    validate_hr_data(hr_master_df)
     logging.info("Validat[ed] HR master data")
 
     # Writing result out
     logging.info("Writing cleaned HR Form DataFrame to Minio...")
+    hr_master_df.drop([HR_MASTER_STAFFNUMBER], axis='columns')
     minio_utils.dataframe_to_minio(hr_master_df, BUCKET,
                                    secrets["minio"]["edge"]["access"],
                                    secrets["minio"]["edge"]["secret"],
