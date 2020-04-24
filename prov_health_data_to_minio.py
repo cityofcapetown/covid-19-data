@@ -25,9 +25,9 @@ BUCKET_CLASSIFICATION = minio_utils.DataClassification.EDGE
 def get_sftp_client(proxy_username, proxy_password, ftp_username, ftp_password):
     proxy = paramiko.proxy.ProxyCommand(
         (f'/usr/bin/ncat --proxy {CITY_PROXY_HOSTNAME}:{CITY_PROXY_PORT} '
-                       f'--proxy-type http '
-                       f'--proxy-auth {proxy_username}:{proxy_password} '
-                       f'{FTP_HOSTNAME} {FTP_PORT}')
+         f'--proxy-type http '
+         f'--proxy-auth {proxy_username}:{proxy_password} '
+         f'{FTP_HOSTNAME} {FTP_PORT}')
     )
     transport = paramiko.Transport(sock=proxy)
     transport.connect(username=ftp_username, password=ftp_password)
@@ -56,16 +56,15 @@ def get_prov_files(sftp):
 
 
 def get_zipfile_contents(zfilename, zfile_password):
-    with tempfile.TemporaryDirectory as tempdir:
-        with zipfile.ZipFile(zfilename) as zfile:
-            zfile_contents = zfile.namelist()
-            logging.debug(f"Found the following files listed in '{zfilename}': {', '.join(zfile_contents)}")
-            for zcontent_filename in zfile_contents:
-                logging.debug(f"Extracting '{zcontent_filename}'")
-                local_path = os.path.join(tempdir, zcontent_filename)
-                zfile.extract(zcontent_filename, path=local_path, pwd=zfile_password.encode())
+    with tempfile.TemporaryDirectory() as tempdir, zipfile.ZipFile(zfilename) as zfile:
+        zfile_contents = zfile.namelist()
+        logging.debug(f"Found the following files listed in '{zfilename}': {', '.join(zfile_contents)}")
+        for zcontent_filename in zfile_contents:
+            logging.debug(f"Extracting '{zcontent_filename}'")
+            local_path = os.path.join(tempdir, zcontent_filename)
+            zfile.extract(zcontent_filename, path=local_path, pwd=zfile_password.encode())
 
-                yield local_path
+            yield local_path
 
 
 if __name__ == "__main__":
