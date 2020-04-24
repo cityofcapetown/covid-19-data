@@ -1,6 +1,7 @@
 import json
 import os
 import logging
+import re
 import sys
 import tempfile
 import zipfile
@@ -21,6 +22,9 @@ RESTRICTED_PREFIX = "data/staging/"
 BUCKET = 'covid'
 BUCKET_CLASSIFICATION = minio_utils.DataClassification.EDGE
 
+COVID_SUM_FILENAME_REGEX = "^covid_sum.*txt$"
+COVID_SUM_FILENAME = "covid_sum_latest.txt"
+
 
 def get_sftp_client(proxy_username, proxy_password, ftp_username, ftp_password):
     proxy = paramiko.proxy.ProxyCommand(
@@ -37,12 +41,16 @@ def get_sftp_client(proxy_username, proxy_password, ftp_username, ftp_password):
 
 
 def get_prov_files(sftp):
-    list_of_files = sftp.listdir(FTP_SYNC_DIR_NAME)
+    list_of_files = sftp.listdir_attr(FTP_SYNC_DIR_NAME)
+    # Sorting by modification time
+    list_of_files.sort(key=lambda sftp_file: sftp_file.st_mtime)
+
     logging.debug(f"Got the following list of files from FTP server: '{', '.join(list_of_files)}'")
 
     with tempfile.TemporaryDirectory() as tempdir:
         # Getting the files from the FTP server
-        for filename in list_of_files:
+        for sftp_file in list_of_files:
+            filename = sftp_file.filename
             logging.debug(f"Getting {filename}...")
             local_path = os.path.join(tempdir, filename)
             ftp_path = os.path.join(FTP_SYNC_DIR_NAME, filename)
@@ -50,7 +58,8 @@ def get_prov_files(sftp):
             sftp.get(ftp_path, local_path)
 
         # Still doing this within the tempdir context manager
-        for filename in list_of_files:
+        for sftp_file in list_of_files:
+            filename = sftp_file.filename
             local_path = os.path.join(tempdir, filename)
             yield local_path
 
@@ -65,6 +74,13 @@ def get_zipfile_contents(zfilename, zfile_password):
 
             local_path = os.path.join(tempdir, zcontent_filename)
             yield local_path
+
+            # Additionally, if this looks like the covid sum file, then make a generic symlink for it
+            if re.match(COVID_SUM_FILENAME_REGEX, zcontent_filename):
+                latest_file_local_path = os.path.join(tempdir, COVID_SUM_FILENAME)
+                os.link(local_path, latest_file_local_path)
+
+                yield latest_file_local_path
 
 
 if __name__ == "__main__":
