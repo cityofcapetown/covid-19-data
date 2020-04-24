@@ -45,7 +45,10 @@ def get_prov_files(sftp):
     # Sorting by modification time
     list_of_files.sort(key=lambda sftp_file: sftp_file.st_mtime)
 
-    logging.debug(f"Got the following list of files from FTP server: '{', '.join(list_of_files)}'")
+    filename_list = ', '.join(map(
+        lambda sftp_file: sftp_file.filename, list_of_files
+    ))
+    logging.debug(f"Got the following list of files from FTP server: '{filename_list}'")
 
     with tempfile.TemporaryDirectory() as tempdir:
         # Getting the files from the FTP server
