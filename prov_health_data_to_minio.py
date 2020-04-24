@@ -61,9 +61,9 @@ def get_zipfile_contents(zfilename, zfile_password):
         logging.debug(f"Found the following files listed in '{zfilename}': {', '.join(zfile_contents)}")
         for zcontent_filename in zfile_contents:
             logging.debug(f"Extracting '{zcontent_filename}'")
-            local_path = os.path.join(tempdir, zcontent_filename)
-            zfile.extract(zcontent_filename, path=local_path, pwd=zfile_password.encode())
+            zfile.extract(zcontent_filename, path=tempdir, pwd=zfile_password.encode())
 
+            local_path = os.path.join(tempdir, zcontent_filename)
             yield local_path
 
 
