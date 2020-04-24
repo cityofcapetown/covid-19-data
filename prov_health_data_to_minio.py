@@ -17,7 +17,7 @@ FTP_PORT = "5022"
 FTP_SYNC_DIR_NAME = 'WCGH_COCT'
 
 PROV_HEALTH_BACKUP_PREFIX = "data/staging/wcgh_backup/"
-RESTRICTED_PREFIX = "data/private/"
+RESTRICTED_PREFIX = "data/staging/"
 BUCKET = 'covid'
 BUCKET_CLASSIFICATION = minio_utils.DataClassification.EDGE
 
