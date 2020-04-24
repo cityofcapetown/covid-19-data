@@ -105,7 +105,8 @@ if __name__ == "__main__":
 
         if zipfile.is_zipfile(ftp_file_path):
             logging.debug(f"{ftp_file_path} appears to be a zip file, attempting to decompress...")
-            for zcontent_file_path in get_zipfile_contents(ftp_file_path):
+            for zcontent_file_path in get_zipfile_contents(ftp_file_path,
+                                                           secrets["ftp"]["wcgh"]["password"]):
                 logging.debug(f"...extracted {zcontent_file_path}")
                 minio_utils.file_to_minio(
                     filename=zcontent_file_path,
