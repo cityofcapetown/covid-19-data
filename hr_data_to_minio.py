@@ -69,7 +69,12 @@ def get_xml_list_dfs(site, list_name):
     access_timestamp = pandas.Timestamp.now(tz="Africa/Johannesburg")
     xml_list = site.List(list_name).GetListItems()
     xml_df = pandas.DataFrame(xml_list)
-    logging.debug(f"Got {xml_df.shape[0]} XML entries")
+
+    if xml_df.shape[0]:
+        logging.warning(f"XML list is empty, returning None")
+        return None
+    else:
+        logging.debug(f"Got {xml_df.shape[0]} XML entries")
 
     url_pattern = re.compile(SP_REGEX)
     logging.debug(f"Setting '{SOURCE_COL_NAME}'='URL Path', '{ACCESS_COL_NAME}'={access_timestamp}")
@@ -164,7 +169,10 @@ def get_combined_list_df(site, auth, proxy_dict, minio_access, minio_secret):
     site_list_dfs = get_excel_list_dfs(site_list, auth, proxy_dict, minio_access, minio_secret)
 
     # concat
-    combined_df = pandas.concat([xml_list_df, *site_list_dfs])
+    combined_df = pandas.concat([
+        df for df in [xml_list_df, *site_list_dfs]
+        if df is not None
+    ])
 
     return combined_df
 
