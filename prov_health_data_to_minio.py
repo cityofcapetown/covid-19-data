@@ -64,10 +64,14 @@ def get_prov_files(sftp):
         for sftp_file in list_of_files:
             filename = sftp_file.filename
             local_path = os.path.join(tempdir, filename)
-            yield local_path
+            # This is reliant on the file's modified time, hence it's probably the latest
+            probably_latest = sftp_file is list_of_files[-1]
+            logging.debug(f"local_path={local_path}, probably_latest={probably_latest}")
+
+            yield local_path, probably_latest
 
 
-def get_zipfile_contents(zfilename, zfile_password):
+def get_zipfile_contents(zfilename, zfile_password, latest):
     with tempfile.TemporaryDirectory() as tempdir, zipfile.ZipFile(zfilename) as zfile:
         zfile_contents = zfile.namelist()
         logging.debug(f"Found the following files listed in '{zfilename}': {', '.join(zfile_contents)}")
@@ -78,8 +82,9 @@ def get_zipfile_contents(zfilename, zfile_password):
             local_path = os.path.join(tempdir, zcontent_filename)
             yield local_path
 
-            # Additionally, if this looks like the covid sum file, then make a generic symlink for it
-            if re.match(COVID_SUM_FILENAME_REGEX, zcontent_filename):
+            # Additionally, if this looks like the covid sum file, and its the latest
+            # then make a generic symlink for it
+            if re.match(COVID_SUM_FILENAME_REGEX, zcontent_filename) and latest:
                 latest_file_local_path = os.path.join(tempdir, COVID_SUM_FILENAME)
                 os.link(local_path, latest_file_local_path)
 
@@ -110,7 +115,7 @@ if __name__ == "__main__":
 
     # Getting files from provincial server
     logging.info("Get[ing] files from FTP server...")
-    for ftp_file_path in get_prov_files(sftp_client):
+    for ftp_file_path, probably_latest_file in get_prov_files(sftp_client):
         logging.debug(f"Backing up {ftp_file_path}...")
         minio_utils.file_to_minio(
             filename=ftp_file_path,
@@ -124,7 +129,8 @@ if __name__ == "__main__":
         if zipfile.is_zipfile(ftp_file_path):
             logging.debug(f"{ftp_file_path} appears to be a zip file, attempting to decompress...")
             for zcontent_file_path in get_zipfile_contents(ftp_file_path,
-                                                           secrets["ftp"]["wcgh"]["password"]):
+                                                           secrets["ftp"]["wcgh"]["password"],
+                                                           probably_latest_file):
                 logging.debug(f"...extracted {zcontent_file_path}")
                 minio_utils.file_to_minio(
                     filename=zcontent_file_path,
