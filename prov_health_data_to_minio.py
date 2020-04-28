@@ -18,7 +18,7 @@ FTP_PORT = "5022"
 FTP_SYNC_DIR_NAME = 'WCGH_COCT'
 
 PROV_HEALTH_BACKUP_PREFIX = "data/staging/wcgh_backup/"
-RESTRICTED_PREFIX = "data/staging/"
+RESTRICTED_PREFIX = "data/private/"
 BUCKET = 'covid'
 BUCKET_CLASSIFICATION = minio_utils.DataClassification.EDGE
 
@@ -80,7 +80,7 @@ def get_zipfile_contents(zfilename, zfile_password, latest):
             zfile.extract(zcontent_filename, path=tempdir, pwd=zfile_password.encode())
 
             local_path = os.path.join(tempdir, zcontent_filename)
-            yield local_path
+            yield PROV_HEALTH_BACKUP_PREFIX, local_path
 
             # Additionally, if this looks like the covid sum file, and its the latest
             # then make a generic symlink for it
@@ -88,7 +88,7 @@ def get_zipfile_contents(zfilename, zfile_password, latest):
                 latest_file_local_path = os.path.join(tempdir, COVID_SUM_FILENAME)
                 os.link(local_path, latest_file_local_path)
 
-                yield latest_file_local_path
+                yield RESTRICTED_PREFIX, latest_file_local_path
 
 
 if __name__ == "__main__":
@@ -128,13 +128,13 @@ if __name__ == "__main__":
 
         if zipfile.is_zipfile(ftp_file_path):
             logging.debug(f"{ftp_file_path} appears to be a zip file, attempting to decompress...")
-            for zcontent_file_path in get_zipfile_contents(ftp_file_path,
+            for file_path_prefix, zcontent_file_path in get_zipfile_contents(ftp_file_path,
                                                            secrets["ftp"]["wcgh"]["password"],
                                                            probably_latest_file):
                 logging.debug(f"...extracted {zcontent_file_path}")
                 minio_utils.file_to_minio(
                     filename=zcontent_file_path,
-                    filename_prefix_override=RESTRICTED_PREFIX,
+                    filename_prefix_override=file_path_prefix,
                     minio_bucket=BUCKET,
                     minio_key=secrets["minio"]["edge"]["access"],
                     minio_secret=secrets["minio"]["edge"]["secret"],
