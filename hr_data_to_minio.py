@@ -70,7 +70,7 @@ def get_xml_list_dfs(site, list_name):
     xml_list = site.List(list_name).GetListItems()
     xml_df = pandas.DataFrame(xml_list)
 
-    if xml_df.shape[0]:
+    if xml_df.shape[0] == 0:
         logging.warning(f"XML list is empty, returning None")
         return None
     else:
