@@ -4,7 +4,7 @@ from airflow.contrib.kubernetes.secret import Secret
 
 from datetime import datetime, timedelta
 
-DAG_STARTDATE = datetime(2020, 3, 23)
+DAG_STARTDATE = datetime(2020, 4, 24)
 default_args = {
     'owner': 'airflow',
     'depends_on_past': False,
@@ -23,8 +23,8 @@ startup_cmd = (
     "pip3 install $DB_UTILS_LOCATION/$DB_UTILS_PKG"
 )
 
-dag_interval = "55 * * * *"
-dag = DAG('covid-19-hr-data',
+dag_interval = "@hourly"
+dag = DAG('covid-19-wcgh-data',
           start_date=DAG_STARTDATE,
           catchup=False,
           default_args=default_args,
@@ -33,7 +33,7 @@ dag = DAG('covid-19-hr-data',
 
 # env variables for inside the k8s pod
 k8s_run_env = {
-    'SECRETS_PATH': '/secrets/secrets.json',
+    'SECRETS_PATH': '/secrets/wcgh-secrets.json',
     'COVID_19_DEPLOY_FILE': 'covid-19-data.zip',
     'COVID_19_DEPLOY_URL': 'https://ds2.capetown.gov.za/covid-19-data-deploy',
     'COVID_19_DATA_DIR': '/covid-19-data',
@@ -42,7 +42,7 @@ k8s_run_env = {
 }
 
 # airflow-workers' secrets
-secret_file = Secret('volume', '/secrets', 'airflow-workers-secret')
+secret_file = Secret('volume', '/secrets', 'wcgh-secret')
 
 # arguments for the k8s operator
 k8s_run_args = {
@@ -60,7 +60,7 @@ k8s_run_args = {
 
 def covid_19_data_task(task_name, task_kwargs={}):
     """Factory for k8sPodOperator"""
-    name = "covid-19-hr-data-{}".format(task_name)
+    name = "covid-19-wcgh-data-{}".format(task_name)
     run_args = {**k8s_run_args.copy(), **task_kwargs}
     run_cmd = "bash -c '{} && \"$COVID_19_DATA_DIR\"/bin/{}.sh'".format(startup_cmd, task_name)
 
@@ -78,24 +78,5 @@ def covid_19_data_task(task_name, task_kwargs={}):
 
 
 # Defining tasks
-HR_FETCH_TASK = 'hr-data-fetch'
-hr_data_fetch_operator = covid_19_data_task(HR_FETCH_TASK)
-
-HR_MASTER_FETCH_TASK = 'hr-master-data-fetch'
-hr_master_data_fetch_operator = covid_19_data_task(HR_MASTER_FETCH_TASK)
-
-HR_MUNGE_TASK = 'hr-data-munge'
-hr_data_munge_operator = covid_19_data_task(HR_MUNGE_TASK)
-
-HR_MASTER_MUNGE_TASK = 'hr-master-data-munge'
-hr_master_data_munge_operator = covid_19_data_task(HR_MASTER_MUNGE_TASK)
-
-HR_ORG_UNIT_MUNGE_TASK = 'hr-data-org-unit-munge'
-hr_data_org_unit_munge_operator = covid_19_data_task(HR_ORG_UNIT_MUNGE_TASK)
-
-# Dependencies
-hr_data_fetch_operator >> hr_data_munge_operator
-hr_master_data_fetch_operator >> hr_master_data_munge_operator
-hr_master_data_munge_operator >> hr_data_munge_operator
-hr_data_munge_operator >> hr_data_org_unit_munge_operator
-hr_master_data_munge_operator >> hr_data_org_unit_munge_operator
+WCGH_FETCH_TASK = 'wcgh-data-fetch'
+wcgh_data_fetch_operator = covid_19_data_task(WCGH_FETCH_TASK)

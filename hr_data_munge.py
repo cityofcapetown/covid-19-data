@@ -13,9 +13,10 @@ HR_FORM_FILENAME_PATH = "data/private/hr_data_complete.csv"
 HR_MASTER_FILENAME_PATH = "data/private/city_people.csv"
 
 HR_TRANSACTIONAL_STAFFNUMBER = 'Employee No'
-HR_TRANSACTION_DATE = 'Date'
-HR_TRANSACTIONAL_COLUMNS = [HR_TRANSACTIONAL_STAFFNUMBER, 'Categories', HR_TRANSACTION_DATE]
 HR_MASTER_STAFFNUMBER = 'StaffNumber'
+HR_TRANSACTION_DATE = 'Date'
+HR_TRANSACTIONAL_COLUMNS = [HR_TRANSACTIONAL_STAFFNUMBER, 'Categories', HR_TRANSACTION_DATE, 'Evaluation',
+                            'Manager', 'Manager Staff No']
 
 HR_COLUMNS_TO_FLATTEN = {HR_TRANSACTIONAL_STAFFNUMBER, 'Categories', 'Employee Name'}
 
@@ -27,7 +28,7 @@ VALID_STATUSES = (
     r"Absent from work \(unauthorised\)",
     "Quarantine leave – working remotely",
     "Quarantine leave – unable to work remotely",
-    "Quarantine leave – working remotely, Covid-19 exposure / isolation",
+    "Quarantine leave – working remotely, COVID 19 exposure / isolation",
     r"Sick \(linked to Covid-19\)",
     r"Sick \(NOT linked to Covid-19\)",
     "On Lockdown leave – unable to work remotely",
@@ -35,11 +36,25 @@ VALID_STATUSES = (
 )
 STATUSES_VALIDITY_PATTERN = "^(" + ")$|^(".join(VALID_STATUSES) + "$)"
 
+VALID_EVALUATION_STATUSES = (
+    'We can deliver on daily tasks ',
+    'We can deliver 75% or less of daily tasks ',
+    'We can do the bare minimum', 'We can continue as normal',
+    'We cannot deliver on daily tasks',
+)
+EVALUATION_VALIDITY_PATTERN = "^(" + ")$|^(".join(VALID_EVALUATION_STATUSES) + "$)"
+
 ISO8601_FORMAT = "%Y-%m-%d %H:%M:%S"
 HR_TRANSACTIONAL_COLUMN_VERIFICATION_FUNCS = {
     HR_TRANSACTIONAL_STAFFNUMBER: lambda col: (col.str.match(r"^\d{8}$") == True),
     "Categories": lambda col: (col.str.match(STATUSES_VALIDITY_PATTERN) == True),
     HR_TRANSACTION_DATE: lambda col: pandas.to_datetime(col, format=ISO8601_FORMAT, errors='coerce').notna(),
+    "Evaluation": lambda col: (col.str.match(EVALUATION_VALIDITY_PATTERN) == True)
+}
+HR_TRANSACTIONAL_COLUMN_RENAME_DICT = {
+    HR_TRANSACTIONAL_STAFFNUMBER: HR_MASTER_STAFFNUMBER,
+    'Manager': 'Approver',
+    'Manager Staff No': 'ApproverStaffNumber'
 }
 
 CLEANED_HR_TRANSACTIONAL = "data/private/business_continuity_people_status"
@@ -120,7 +135,7 @@ def clean_hr_form(hr_df, master_df):
     logging.debug(f"cleaned_hr_df.shape={cleaned_hr_df.shape}")
 
     # Checking membership in master data file
-    cleaned_hr_df.rename({HR_TRANSACTIONAL_STAFFNUMBER: HR_MASTER_STAFFNUMBER}, axis='columns', inplace=True)
+    cleaned_hr_df.rename(HR_TRANSACTIONAL_COLUMN_RENAME_DICT, axis='columns', inplace=True)
     in_master = cleaned_hr_df[HR_MASTER_STAFFNUMBER].isin(master_df[HR_MASTER_STAFFNUMBER].astype('str'))
     if in_master.sum() < cleaned_hr_df.shape[0]:
         logging.warning(
@@ -147,17 +162,29 @@ def update_hr_form(cleaned_hr_df):
     logging.debug(f"current_state_df.shape=\n{current_state_df.shape}")
     logging.debug(f"cleaned_hr_df.shape=\n{cleaned_hr_df.shape}")
 
-    # Combing, then dropping duplicates, based upon staff number and date
+    # Combining, then dropping duplicates, based upon staff number and date
     combined_df = pandas.concat([current_state_df, cleaned_hr_df])
-    deduped_df = combined_df.drop_duplicates(subset=[HR_MASTER_STAFFNUMBER, HR_TRANSACTION_DATE])
+    dummy_date_col = 'temp_date'
+    combined_df[dummy_date_col] = pandas.to_datetime(combined_df[HR_TRANSACTION_DATE]).dt.date
+
+    # First, sorting in terms of the timestamp, then deduping on the *date*,
+    # this should keep the most recent record for each day
+    deduped_df = combined_df.sort_values(
+        by=[HR_TRANSACTION_DATE], ascending=False
+    ).drop_duplicates(subset=[HR_MASTER_STAFFNUMBER, dummy_date_col])
 
     logging.debug(f"deduped_df.shape={deduped_df.shape}")
     logging.debug(f"Got {deduped_df.shape[0] - current_state_df.shape[0]} new values")
 
-    new_values_df = combined_df.drop_duplicates(subset=[HR_MASTER_STAFFNUMBER, HR_TRANSACTION_DATE], keep=False)
+    new_values_df = combined_df.sort_values(
+        by=[HR_TRANSACTION_DATE], ascending=False
+    ).drop_duplicates(subset=[HR_MASTER_STAFFNUMBER, dummy_date_col], keep=False)
     logging.debug(
         f"new_values=\n{new_values_df}"
     )
+
+    # Getting rid of dummy date column before returning
+    deduped_df.drop(dummy_date_col, axis='columns', inplace=True)
 
     return deduped_df
 
