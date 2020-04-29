@@ -81,7 +81,22 @@ dir.create("data/staging", recursive = T)
 # PROCESS DATA
 
 # WC_case_data ---
-wc_case_data <- "data/staging/Covid-19 Anonymised line list.csv"
+# wc_case_data <- "data/staging/Covid-19 Anonymised line list.csv"
+# minio_to_file(wc_case_data,
+#               "covid",
+#               minio_key,
+#               minio_secret,
+#               "EDGE",
+#               minio_filename_override=wc_case_data)
+# 
+# wc_all_cases <- read_csv(wc_case_data)
+# write_csv(wc_all_cases, "data/private/wc_all_cases.csv")
+# 
+# ct_all_cases <- wc_all_cases %>% filter(district == "City of Cape Town")
+# write_csv(ct_all_cases, "data/private/ct_all_cases.csv")
+
+
+wc_case_data <- "data/private/covid_sum_latest.txt"
 minio_to_file(wc_case_data,
               "covid",
               minio_key,
@@ -89,11 +104,13 @@ minio_to_file(wc_case_data,
               "EDGE",
               minio_filename_override=wc_case_data)
 
-wc_all_cases <- read_csv(wc_case_data)
+wc_all_cases <- read_tsv(wc_case_data) %>% dplyr::rename_all(list(~make.names(.)))
+
 write_csv(wc_all_cases, "data/private/wc_all_cases.csv")
 
-ct_all_cases <- wc_all_cases %>% filter(district == "City of Cape Town")
+ct_all_cases <- wc_all_cases %>% filter(District == "City of Cape Town")
 write_csv(ct_all_cases, "data/private/ct_all_cases.csv")
+
 
 # WC_model_data ---------------------------
 wc_model_data_new <- "data/staging/wc_covid_scenarios.xlsx"
