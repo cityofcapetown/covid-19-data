@@ -106,6 +106,22 @@ minio_to_file(wc_case_data,
 
 wc_all_cases <- read_tsv(wc_case_data) %>% dplyr::rename_all(list(~make.names(.)))
 
+# drop bad dates
+max_date <- Sys.time()
+min_date <- ymd("2019-12-31")
+
+wc_all_cases <- wc_all_cases %>% 
+  filter(pmax(Date.of.Diagnosis,
+                        Admission.Date,
+                        Date.of.ICU.Admission,
+                        Discharge.Date,
+                        Date.of.Death, na.rm = T) <= max_date) %>%
+  filter(pmin(Date.of.Diagnosis,
+              Admission.Date,
+              Date.of.ICU.Admission,
+              Discharge.Date,
+              Date.of.Death, na.rm = T) >= min_date)
+
 write_csv(wc_all_cases, "data/private/wc_all_cases.csv")
 
 ct_all_cases <- wc_all_cases %>% filter(District == "City of Cape Town")
