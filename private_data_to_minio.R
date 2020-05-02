@@ -108,7 +108,7 @@ wc_all_cases <- read_tsv(wc_case_data) %>% dplyr::rename_all(list(~make.names(.)
 
 # drop bad dates
 max_date <- Sys.time()
-min_date <- ymd("2019-12-31")
+min_date <- ymd("2020-03-01")
 
 wc_all_cases <- wc_all_cases %>% 
   filter(pmax(Date.of.Diagnosis,
