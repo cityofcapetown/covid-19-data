@@ -79,6 +79,7 @@ dir.create("data/private", recursive = TRUE)
 dir.create("data/staging", recursive = T)
 
 # PROCESS DATA
+# PUBLIC ANNOUNCEMENTS ========================
 # public announcements ---
 public_announcements <- "data/staging/covid_19 announcements.xlsx"
 minio_to_file(public_announcements,
@@ -93,6 +94,7 @@ covid_key_announcements <- read_excel(public_announcements, sheet = "Key announc
 write_csv(covid_general_announcements, "data/public/covid_general_announcements.csv")
 write_csv(covid_key_announcements, "data/public/covid_key_announcements.csv")
 
+# GLOBAL DATA ==================================
 # time_series_19-covid-Confirmed ---
 # Pull raw data
 global_timeseries_confirmed <- read_csv(
@@ -192,7 +194,6 @@ global_deaths_since_25 <- global_deaths_since_25 %>%
 write_csv(global_deaths_since_25, "data/public/global_deaths_since_25.csv")
 
 
-
 # r global_latest_stats -------------
 global_latest_confirmed <- global_ts_spread_confirmed %>% 
   filter(report_date == max(global_ts_spread_confirmed$report_date)) %>% 
@@ -237,6 +238,52 @@ global_latest_data <- global_latest_data %>%
 
 write_csv(global_latest_data, "data/public/global_latest_data.csv")
 
+
+# US DATA ============================================================
+
+# minio_to_file("data/public/usa_county_populations.csv",
+#               "covid",
+#               minio_key,
+#               minio_secret,
+#               "EDGE",
+#               minio_filename_override="data/public/usa_county_populations.csv")
+# usa_county_populations <- read_csv("data/public/usa_county_populations.csv")
+# usa_county_populations <- usa_county_populations %>% select(CTYNAME, STNAME, POPESTIMATE2019)
+# 
+
+usa_county_timeseries_deaths <- read_csv(
+  remote_file("https://raw.githubusercontent.com/CSSEGISandData/COVID-19/master/csse_covid_19_data/csse_covid_19_time_series/time_series_covid19_deaths_US.csv"))
+
+usa_county_populations <- usa_county_timeseries_deaths %>% select(Combined_Key, Population)
+
+write_csv(usa_county_populations, "data/public/usa_county_populations.csv")
+
+usa_county_timeseries_deaths <- usa_county_timeseries_deaths %>% 
+  select(-UID, -iso2, -iso3, -code3, -FIPS, -Admin2, -Province_State, -Country_Region, -Lat, -Long_, -Population)
+
+usa_county_timeseries_deaths <- usa_county_timeseries_deaths %>% 
+  gather(key = "report_date", value = "deaths", -Combined_Key) %>% 
+  mutate(report_date = parse_date_time(report_date, orders = c("mdy"))) %>% 
+  dplyr::group_by(report_date, Combined_Key) %>% 
+  dplyr::summarise(deaths = sum(deaths)) %>%
+  dplyr::ungroup() 
+
+usa_county_deaths_since_25 <- usa_county_timeseries_deaths %>% 
+  mutate(more_than_25 = if_else(deaths >= 25, TRUE, FALSE)) %>% 
+  filter(more_than_25 == TRUE) %>%
+  mutate(iter = 1) %>%
+  arrange(report_date) %>%
+  group_by(Combined_Key) %>% 
+  mutate(days_since_passed_25=cumsum(iter)) %>% 
+  ungroup() %>% 
+  select(-report_date, -more_than_25, -iter) 
+
+usa_county_deaths_since_25 <- usa_county_deaths_since_25 %>% 
+  spread(key = "Combined_Key", value = "deaths")
+
+write_csv(usa_county_deaths_since_25, "data/public/usa_county_deaths_since_25.csv")
+
+# SOUTH AFRICAN DATA
 # r covid19za_timeline_provincial_confirmed -------------
 rsa_provincial_timeseries_confirmed <- read_csv(
   remote_file("https://raw.githubusercontent.com/dsfsi/covid19za/master/data/covid19za_provincial_cumulative_timeline_confirmed.csv")) %>% 
