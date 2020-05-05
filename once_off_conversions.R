@@ -159,6 +159,10 @@ if(!file.exists("data/public/global_pop_f_raw.csv")) {
   write_csv(global_pop_f, "data/public/global_pop_f_raw.csv")
 }
 
+# usa_county_populations -------------
+
+usa_county_populations <- remote_file("https://www2.census.gov/programs-surveys/popest/datasets/2010-2019/counties/totals/co-est2019-alldata.csv")
+write_csv(usa_county_populations, "data/public/usa_county_populations.csv")
 
 # r rsa_pop_genders_ages -----------
 global_pop_m <- read_csv("data/public/global_pop_m_raw.csv")
@@ -305,22 +309,22 @@ save_geojson(cct_hex_polygons_8, "data/public")
 
 
 # Resilience---------------------- 
-
-staging_root <- "data/staging" 
-filedir <- "Climate Risk Study - Resilience"
-filename <- file.path(staging_root, paste(filedir,"zip", sep = "."))
-minio_to_file(filename,
-              "covid",
-              minio_key,
-              minio_secret,
-              "EDGE",
-              minio_filename_override=filename)
-
-unzip(filename)
-
-pgwc_cct_polygons <- read_sf(file.path(staging_root, filedir))
-save_geojson(pgwc_cct_polygons, "data/public")
-
+# 
+# staging_root <- "data/staging" 
+# filedir <- "Climate Risk Study - Resilience"
+# filename <- file.path(staging_root, paste(filedir,"zip", sep = "."))
+# minio_to_file(filename,
+#               "covid",
+#               minio_key,
+#               minio_secret,
+#               "EDGE",
+#               minio_filename_override=filename)
+# 
+# unzip(filename)
+# 
+# pgwc_cct_polygons <- read_sf(file.path(staging_root, filedir))
+# save_geojson(pgwc_cct_polygons, "data/public")
+# 
 
 
 # SEND TO MINIO ====================================
