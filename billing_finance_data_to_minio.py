@@ -65,7 +65,7 @@ if __name__ == "__main__":
                         format='%(asctime)s-%(module)s.%(funcName)s [%(levelname)s]: %(message)s')
     
     # Loading secrets
-    SECRETS_PATH_VAR = "SECRETS_PATH"
+    SECRETS_PATH_VAR = "SECRETS_FILE"
 
     if SECRETS_PATH_VAR not in os.environ:
         print("Secrets path not found!")
