@@ -36,6 +36,9 @@ minio_url_override = NA
 unlink("data/staging", recursive = T)
 dir.create("data/staging", recursive = T)
 
+unlink("data/private", recursive = T)
+dir.create("data/private", recursive = T)
+
 # PROCESS DATA ====================================================================
 
 billing_data <- "data/staging/MCSH-Billing_Invoicing.xlsx"
