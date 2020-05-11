@@ -117,6 +117,9 @@ def get_xml_list_dfs(site, list_name):
 
 def get_excel_list_dfs(site_list, auth, proxy_dict, minio_access, minio_secret):
     url_pattern = re.compile(SP_REGEX)
+    http_session = requests.Session()
+    http_session.proxies = proxy_dict
+    http_session.auth = auth
 
     with tempfile.TemporaryDirectory() as tempdir:
         for file_dict in site_list:
@@ -125,7 +128,7 @@ def get_excel_list_dfs(site_list, auth, proxy_dict, minio_access, minio_secret):
             file_url = urllib.parse.urljoin(SP_DOMAIN, file_uri)
             logging.debug(f"Fetching '{file_url}'...")
 
-            resp = requests.get(file_url, auth=auth, proxies=proxy_dict)
+            resp = http_session.get(file_url)
             assert resp.status_code == 200
             access_timestamp = pandas.Timestamp.now(tz="Africa/Johannesburg")
 
