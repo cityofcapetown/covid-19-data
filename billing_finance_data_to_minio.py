@@ -72,7 +72,7 @@ if __name__ == "__main__":
         sys.exit(-1)
         
 
-    secrets_path = os.environ["SECRETS_PATH"]
+    secrets_path = os.environ["SECRETS_FILE"]
     #secrets_path = "../secrets.json"
     secrets = json.load(open(secrets_path))
     account = setup_exchange_account(secrets["proxy"]["username"], 
