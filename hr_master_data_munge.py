@@ -22,7 +22,7 @@ HR_EXPECTED_STAFFNUMBER = 'StaffNumber'
 ESSENTIAL_COL = "EssentialStaff"
 APPROVER_COLUMNS = ["Persno",
                     "Approver Staff No", "Approver Name", ]
-TO_BE_ASSESSED_COL = "ToBeAssessed"
+ASSESSED_COL = "AssessedStaff"
 HR_MASTER_FILENAME_PATH = "data/private/city_people"
 
 
@@ -72,14 +72,14 @@ def merge_in_attribute_data(master_df, ess_df, ass_df):
         right_on=HR_MASTER_STAFFNUMBER,
         validate="one_to_one"
     )
-    employee_master_with_ess_and_ass_df[TO_BE_ASSESSED_COL] = (
+    employee_master_with_ess_and_ass_df[ASSESSED_COL] = (
         employee_master_with_ess_and_ass_df['Approver Staff No'].notna()
     )
 
     logging.debug(
-        f"employee_master_with_ess_and_ass_df['{TO_BE_ASSESSED_COL}'].sum()/"
+        f"employee_master_with_ess_and_ass_df['{ASSESSED_COL}'].sum()/"
         f"employee_master_with_ess_and_ass_df.shape[0]="
-        f"{employee_master_with_ess_and_ass_df[TO_BE_ASSESSED_COL].sum()}/"
+        f"{employee_master_with_ess_and_ass_df[ASSESSED_COL].sum()}/"
         f"{employee_master_with_ess_and_ass_df.shape[0]}"
     )
 
