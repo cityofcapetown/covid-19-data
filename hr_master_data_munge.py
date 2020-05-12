@@ -14,14 +14,15 @@ HR_FORM_FILENAME_PATH = "data/private/hr_data_complete.csv"
 HR_MASTER_INGESTION_FILENAME_PATH = "data/private/city_employee_master_data.csv"
 HR_MASTER_LOCATION_FILENAME_PATH = "data/private/city_people_locations.csv"
 HR_MASTER_ESS_FILENAME_PATH = "data/private/hr_data_ess_staff.csv"
+HR_MASTER_ASS_FILENAME_PATH = "data/private/hr_data_assessed_staff.csv"  # hehe
 
 HR_MASTER_STAFFNUMBER = 'Persno'
 HR_EXPECTED_STAFFNUMBER = 'StaffNumber'
 
 ESSENTIAL_COL = "EssentialStaff"
-ESS_COLUMNS = ["Persno",
-               "Approver Staff No", "Approver Name",]
-
+APPROVER_COLUMNS = ["Persno",
+                    "Approver Staff No", "Approver Name", ]
+TO_BE_ASSESSED_COL = "ToBeAssessed"
 HR_MASTER_FILENAME_PATH = "data/private/city_people"
 
 
@@ -55,21 +56,34 @@ def merge_in_location_data(master_df, location_df):
     return employee_master_with_loc_df
 
 
-def merge_in_ess_data(master_df, ess_df):
+def merge_in_attribute_data(master_df, ess_df, ass_df):
     # Marking essential staff
     employee_master_with_ess_df = master_df.copy().assign(
         **{ESSENTIAL_COL: master_df[HR_MASTER_STAFFNUMBER].isin(ess_df[HR_MASTER_STAFFNUMBER])}
-    ).merge(
-        ess_df[ESS_COLUMNS],
-        left_on=HR_MASTER_STAFFNUMBER,
-        right_on=HR_MASTER_STAFFNUMBER,
-        validate="one_to_one"
     )
     logging.debug(
         f"employee_master_with_ess_df['{ESSENTIAL_COL}'].sum()={employee_master_with_ess_df[ESSENTIAL_COL].sum()}"
     )
 
-    return employee_master_with_ess_df
+    # Getting approver cols
+    employee_master_with_ess_and_ass_df = employee_master_with_ess_df.merge(
+        ass_df[APPROVER_COLUMNS],
+        left_on=HR_MASTER_STAFFNUMBER,
+        right_on=HR_MASTER_STAFFNUMBER,
+        validate="one_to_one"
+    )
+    employee_master_with_ess_and_ass_df[TO_BE_ASSESSED_COL] = (
+        employee_master_with_ess_and_ass_df['Approver Staff No'].notna()
+    )
+
+    logging.debug(
+        f"employee_master_with_ess_and_ass_df['{TO_BE_ASSESSED_COL}'].sum()/"
+        f"employee_master_with_ess_and_ass_df.shape[0]="
+        f"{employee_master_with_ess_and_ass_df[TO_BE_ASSESSED_COL].sum()}/"
+        f"{employee_master_with_ess_and_ass_df.shape[0]}"
+    )
+
+    return employee_master_with_ess_and_ass_df
 
 
 def validate_hr_data(master_df):
@@ -104,11 +118,14 @@ if __name__ == "__main__":
     hr_master_ess_df = get_data_df(HR_MASTER_ESS_FILENAME_PATH,
                                    secrets["minio"]["edge"]["access"],
                                    secrets["minio"]["edge"]["secret"])
+    hr_master_ass_df = get_data_df(HR_MASTER_ASS_FILENAME_PATH,
+                                   secrets["minio"]["edge"]["access"],
+                                   secrets["minio"]["edge"]["secret"])
     logging.info("Fetch[ed] HR master data")
 
-    logging.info("Merg[ing] in ESS data")
-    hr_master_temp_df = merge_in_ess_data(hr_master_ingestion_df, hr_master_ess_df)
-    logging.info("Merg[ed] in HR ESS data")
+    logging.info("Merg[ing] in HR attribute data")
+    hr_master_temp_df = merge_in_attribute_data(hr_master_ingestion_df, hr_master_ess_df, hr_master_ass_df)
+    logging.info("Merg[ed] in HR attribute data")
 
     logging.info("Merg[ing] in location data")
     hr_master_df = merge_in_location_data(hr_master_temp_df, hr_master_location_df)
