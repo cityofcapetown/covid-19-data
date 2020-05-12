@@ -18,11 +18,12 @@ BUCKET = 'covid'
 STAGING_PREFIX = "data/staging/"
 RESTRICTED_PREFIX = "data/private/"
 
-ESSENTIAL_STAFF_LIST_NAME = 'Master Sheets'
+MASTER_SHEET_LIST_NAME = 'Master Sheets'
 ESSENTIAL_STAFF_FILE_PATTERN = 'ess staff upload'
+ASSESSED_STAFF_FILE_PATTERN = 'all staff upload'
 
 ESS_FILENAME_PATH = "data/private/hr_data_ess_staff"
-
+ASS_FILENAME_PATH = "data/private/hr_data_assessed_staff" # hehe
 
 def setup_exchange_account(username, password):
     logging.debug("Creating config for account with username '{}'".format(username))
@@ -80,19 +81,19 @@ def convert_xls_to_csv(xls_path, csv_path):
     temp_df.to_csv(csv_path, index=False)
 
 
-def get_most_recent_sharepoint_item(site):
-    file_list_dicts = site.List(ESSENTIAL_STAFF_LIST_NAME).GetListItems()
-    ess_file_list = [
+def get_most_recent_sharepoint_item(site, file_name_pattern):
+    file_list_dicts = site.List(MASTER_SHEET_LIST_NAME).GetListItems()
+    file_list = [
         file_dict for file_dict in file_list_dicts
-        if ESSENTIAL_STAFF_FILE_PATTERN in file_dict["Name"].lower()
+        if file_name_pattern in file_dict["Name"].lower()
     ]
-    logging.debug(f"Found {len(ess_file_list)} items in '{ESSENTIAL_STAFF_LIST_NAME}' list")
+    logging.debug(f"Found {len(file_list)} items in '{MASTER_SHEET_LIST_NAME}' list")
 
     created_regex = re.compile(hr_data_to_minio.SP_REGEX)
-    ess_file_list.sort(
+    file_list.sort(
         key=lambda file_dict: created_regex.search(file_dict["Created"]).group(1)
     )
-    most_recent = ess_file_list[-1]
+    most_recent = file_list[-1]
 
     return most_recent
 
@@ -173,16 +174,18 @@ if __name__ == "__main__":
         hr_data_to_minio.SP_SITE,
         sp_auth
     )
-    more_recent_essential_staff_dict = get_most_recent_sharepoint_item(sp_site)
-    for essential_staff_df in hr_data_to_minio.get_excel_list_dfs([more_recent_essential_staff_dict],
-                                                                  sp_auth, city_proxy_dict,
-                                                                  secrets["minio"]["edge"]["access"],
-                                                                  secrets["minio"]["edge"]["secret"]
-                                                                  ):
-        minio_utils.dataframe_to_minio(essential_staff_df, BUCKET,
-                                       secrets["minio"]["edge"]["access"], secrets["minio"]["edge"]["secret"],
-                                       minio_utils.DataClassification.EDGE,
-                                       filename_prefix_override=ESS_FILENAME_PATH,
-                                       data_versioning=False,
-                                       file_format="csv",
-                                       index=False)
+    for filename_path, file_pattern in ((ESS_FILENAME_PATH, ESSENTIAL_STAFF_FILE_PATTERN),
+                                        (ASS_FILENAME_PATH, ASSESSED_STAFF_FILE_PATTERN)):
+        logging.debug(f"Fetching {filename_path}")
+        staff_dict = get_most_recent_sharepoint_item(sp_site, file_pattern)
+        for essential_staff_df in hr_data_to_minio.get_excel_list_dfs([staff_dict],
+                                                                      sp_auth, city_proxy_dict,
+                                                                      secrets["minio"]["edge"]["access"],
+                                                                      secrets["minio"]["edge"]["secret"]):
+            minio_utils.dataframe_to_minio(essential_staff_df, BUCKET,
+                                           secrets["minio"]["edge"]["access"], secrets["minio"]["edge"]["secret"],
+                                           minio_utils.DataClassification.EDGE,
+                                           filename_prefix_override=filename_path,
+                                           data_versioning=False,
+                                           file_format="csv",
+                                           index=False)
