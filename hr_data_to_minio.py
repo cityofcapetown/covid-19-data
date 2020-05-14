@@ -36,6 +36,14 @@ XML_FIELD_NAMES = [
 ]
 ISO8601_FORMAT = "%Y-%m-%d %H:%M:%S"
 
+SP_BATCH_LIST_NAMES = ['SWM Batch Submissions']
+BATCH_COLUMN_MAP = {
+    'Date': 'Date',
+    'Evaluation': 'Evaluation',
+    'Staff Number': 'Employee No',
+    'Status': 'Categories'
+}
+
 BUCKET = 'covid'
 HR_BACKUP_PREFIX = "data/staging/hr_data_backup/"
 FILENAME_PATH = "data/private/hr_data_complete"
@@ -167,13 +175,22 @@ def get_combined_list_df(site, auth, proxy_dict, minio_access, minio_secret):
     xml_list_df = get_xml_list_dfs(site, SP_XML_LIST_NAME)
 
     # setup file generator
+    # Extract files
     site_list = site.List(SP_EXCEL_LIST_NAME).GetListItems()
     logging.debug(f"Got '{len(site_list)}' item(s) from '{SP_EXCEL_LIST_NAME}'")
     site_list_dfs = get_excel_list_dfs(site_list, auth, proxy_dict, minio_access, minio_secret)
 
+    # Batch files
+    batch_list_dfs = (
+        batch_df[BATCH_COLUMN_MAP.keys()].rename(BATCH_COLUMN_MAP, axis='columns')
+        for batch_list in SP_BATCH_LIST_NAMES
+        for batch_df in get_excel_list_dfs(site.List(batch_list).GetListItems(),
+                                            auth, proxy_dict, minio_access, minio_secret)
+    )
+
     # concat
     combined_df = pandas.concat([
-        df for df in [xml_list_df, *site_list_dfs]
+        df for df in [xml_list_df, *site_list_dfs, *batch_list_dfs]
         if df is not None
     ])
 
