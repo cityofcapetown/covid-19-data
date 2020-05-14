@@ -313,6 +313,15 @@ rsa_timeseries_deaths <- read_csv(
 
 write_csv(rsa_timeseries_deaths, "data/public/covid19za_timeline_deaths.csv")
 
+# r covid19za_timeline_provincial_deaths -------------------
+rsa_timeseries_provincial_deaths <- read_csv(
+  remote_file("https://raw.githubusercontent.com/dsfsi/covid19za/master/data/covid19za_provincial_cumulative_timeline_deaths.csv")) %>% 
+  mutate(YYYYMMDD = ymd(YYYYMMDD),
+         date = dmy(date))
+
+write_csv(rsa_timeseries_provincial_deaths, "data/public/covid19za_provincial_timeline_deaths.csv")
+
+
 #r rsa_provincial_ts_confirmed ------------------
 provincial_timeseries_confirmed <- rsa_provincial_timeseries_confirmed %>%
   select(-date)
