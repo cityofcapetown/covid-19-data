@@ -46,12 +46,14 @@ def get_data_df(filename, minio_access, minio_secret):
 
 
 def merge_in_location_data(master_df, location_df):
+    logging.debug(f"master_df.shape={master_df.shape}")
     employee_master_with_loc_df = master_df.merge(
         location_df,
         left_on=HR_MASTER_STAFFNUMBER,
         right_on=HR_EXPECTED_STAFFNUMBER,
         validate="one_to_one"
     )
+    logging.debug(f"employee_master_with_loc_df.shape={employee_master_with_loc_df.shape}")
 
     return employee_master_with_loc_df
 
