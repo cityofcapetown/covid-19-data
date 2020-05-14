@@ -51,7 +51,8 @@ def merge_in_location_data(master_df, location_df):
         location_df,
         left_on=HR_MASTER_STAFFNUMBER,
         right_on=HR_EXPECTED_STAFFNUMBER,
-        validate="one_to_one"
+        validate="one_to_one",
+        how="left"
     )
     logging.debug(f"employee_master_with_loc_df.shape={employee_master_with_loc_df.shape}")
 
