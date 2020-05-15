@@ -30,7 +30,9 @@ VALID_STATUSES = (
     "Quarantine leave – unable to work remotely",
     "Quarantine leave – working remotely, COVID 19 exposure / isolation",
     r"Sick \(linked to Covid-19\)",
+    r"Sick \(linked to COVID 19\)",
     r"Sick \(NOT linked to Covid-19\)",
+    r"Sick \(NOT linked to COVID 19\)",
     "On Lockdown leave – unable to work remotely",
     "On Lockdown leave – able to work remotely"
 )
