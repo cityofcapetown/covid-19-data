@@ -54,6 +54,7 @@ def merge_in_location_data(master_df, location_df):
         validate="one_to_one",
         how="left"
     )
+    employee_master_with_loc_df[HR_EXPECTED_STAFFNUMBER] = employee_master_with_loc_df[HR_MASTER_STAFFNUMBER]
     logging.debug(f"employee_master_with_loc_df.shape={employee_master_with_loc_df.shape}")
 
     return employee_master_with_loc_df
@@ -61,24 +62,16 @@ def merge_in_location_data(master_df, location_df):
 
 def merge_in_attribute_data(master_df, ess_df, ass_df):
     # Marking essential staff
-    employee_master_with_ess_df = master_df.copy().assign(
-        **{ESSENTIAL_COL: master_df[HR_MASTER_STAFFNUMBER].isin(ess_df[HR_MASTER_STAFFNUMBER])}
+    employee_master_with_ess_and_ass_df = master_df.copy().assign(
+        **{ESSENTIAL_COL: master_df[HR_MASTER_STAFFNUMBER].isin(ess_df[HR_MASTER_STAFFNUMBER])},
+        **{ASSESSED_COL: master_df[HR_MASTER_STAFFNUMBER].isin(ess_df[HR_MASTER_STAFFNUMBER])}
     )
     logging.debug(
-        f"employee_master_with_ess_df['{ESSENTIAL_COL}'].sum()={employee_master_with_ess_df[ESSENTIAL_COL].sum()}"
+        f"employee_master_with_ess_and_ass_df['{ESSENTIAL_COL}'].sum()/"
+        f"employee_master_with_ess_and_ass_df.shape[0]="
+        f"{employee_master_with_ess_and_ass_df[ESSENTIAL_COL].sum()}/"
+        f"{employee_master_with_ess_and_ass_df.shape[0]}"
     )
-
-    # Getting approver cols
-    employee_master_with_ess_and_ass_df = employee_master_with_ess_df.merge(
-        ass_df[APPROVER_COLUMNS],
-        left_on=HR_MASTER_STAFFNUMBER,
-        right_on=HR_MASTER_STAFFNUMBER,
-        validate="one_to_one"
-    )
-    employee_master_with_ess_and_ass_df[ASSESSED_COL] = (
-        employee_master_with_ess_and_ass_df['Approver Staff No'].notna()
-    )
-
     logging.debug(
         f"employee_master_with_ess_and_ass_df['{ASSESSED_COL}'].sum()/"
         f"employee_master_with_ess_and_ass_df.shape[0]="
@@ -86,14 +79,13 @@ def merge_in_attribute_data(master_df, ess_df, ass_df):
         f"{employee_master_with_ess_and_ass_df.shape[0]}"
     )
 
-    return employee_master_with_ess_and_ass_df
+    return employee_master_with_ess_and_ass_df.query(ASSESSED_COL)
 
 
 def validate_hr_data(master_df):
-    assert (
-        master_df.shape[0] == master_df[HR_EXPECTED_STAFFNUMBER].nunique(),
-        (f"master_df.shape[0]={master_df.shape[0]} vs "
-         f"master_df[HR_MASTER_STAFFNUMBER].nunique()={master_df[HR_EXPECTED_STAFFNUMBER].nunique()}")
+    assert master_df.shape[0] == master_df[HR_EXPECTED_STAFFNUMBER].nunique(), (
+        f"master_df.shape[0]={master_df.shape[0]} vs "
+        f"master_df[HR_MASTER_STAFFNUMBER].nunique()={master_df[HR_EXPECTED_STAFFNUMBER].nunique()}"
     )
 
 
