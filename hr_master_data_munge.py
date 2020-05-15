@@ -66,6 +66,7 @@ def merge_in_attribute_data(master_df, ess_df, ass_df):
         **{ESSENTIAL_COL: master_df[HR_MASTER_STAFFNUMBER].isin(ess_df[HR_MASTER_STAFFNUMBER])},
         **{ASSESSED_COL: master_df[HR_MASTER_STAFFNUMBER].isin(ass_df[HR_MASTER_STAFFNUMBER])}
     )
+
     logging.debug(
         f"employee_master_with_ess_and_ass_df['{ESSENTIAL_COL}'].sum()/"
         f"employee_master_with_ess_and_ass_df.shape[0]="
@@ -79,7 +80,16 @@ def merge_in_attribute_data(master_df, ess_df, ass_df):
         f"{employee_master_with_ess_and_ass_df.shape[0]}"
     )
 
-    return employee_master_with_ess_and_ass_df.query(ASSESSED_COL)
+    # Joining in assessed attributes, and filtering (using the inner join) down to only assessed
+    employee_master_with_ass_attributes_df = employee_master_with_ess_and_ass_df.merge(
+        ass_df[APPROVER_COLUMNS],
+        left_on=HR_MASTER_STAFFNUMBER,
+        right_on=HR_MASTER_STAFFNUMBER,
+        how='inner',
+        validate="one_to_one"
+    )
+
+    return employee_master_with_ass_attributes_df
 
 
 def validate_hr_data(master_df):
