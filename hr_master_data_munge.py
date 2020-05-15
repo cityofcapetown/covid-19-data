@@ -64,7 +64,7 @@ def merge_in_attribute_data(master_df, ess_df, ass_df):
     # Marking essential staff
     employee_master_with_ess_and_ass_df = master_df.copy().assign(
         **{ESSENTIAL_COL: master_df[HR_MASTER_STAFFNUMBER].isin(ess_df[HR_MASTER_STAFFNUMBER])},
-        **{ASSESSED_COL: master_df[HR_MASTER_STAFFNUMBER].isin(ess_df[HR_MASTER_STAFFNUMBER])}
+        **{ASSESSED_COL: master_df[HR_MASTER_STAFFNUMBER].isin(ass_df[HR_MASTER_STAFFNUMBER])}
     )
     logging.debug(
         f"employee_master_with_ess_and_ass_df['{ESSENTIAL_COL}'].sum()/"
