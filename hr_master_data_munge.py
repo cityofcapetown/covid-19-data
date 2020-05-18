@@ -25,6 +25,9 @@ APPROVER_COLUMNS = ["Persno",
 ASSESSED_COL = "AssessedStaff"
 HR_MASTER_FILENAME_PATH = "data/private/city_people"
 
+DEPARTMENT_COL = "Department"
+OVERRIDE_DEPTS = {"solid waste management", }
+
 
 def get_data_df(filename, minio_access, minio_secret):
     with tempfile.NamedTemporaryFile() as temp_data_file:
@@ -61,11 +64,19 @@ def merge_in_location_data(master_df, location_df):
 
 
 def merge_in_attribute_data(master_df, ess_df, ass_df):
-    # Marking essential staff
+    # Marking essential and assessed staff
     employee_master_with_ess_and_ass_df = master_df.copy().assign(
         **{ESSENTIAL_COL: master_df[HR_MASTER_STAFFNUMBER].isin(ess_df[HR_MASTER_STAFFNUMBER])},
         **{ASSESSED_COL: master_df[HR_MASTER_STAFFNUMBER].isin(ass_df[HR_MASTER_STAFFNUMBER])}
     )
+
+    # Setting assessed flag using override departments list
+    employee_master_with_ess_and_ass_df.loc[
+        employee_master_with_ess_and_ass_df.query(
+            f"{DEPARTMENT_COL}.str.lower().isin(@OVERRIDE_DEPTS)"
+        ).index,
+        ASSESSED_COL
+    ] = True
 
     logging.debug(
         f"employee_master_with_ess_and_ass_df['{ESSENTIAL_COL}'].sum()/"
