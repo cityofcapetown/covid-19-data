@@ -91,12 +91,14 @@ def merge_in_attribute_data(master_df, ess_df, ass_df):
         f"{employee_master_with_ess_and_ass_df.shape[0]}"
     )
 
-    # Joining in assessed attributes, and filtering (using the inner join) down to only assessed
-    employee_master_with_ass_attributes_df = employee_master_with_ess_and_ass_df.merge(
+    # Joining in assessed attributes
+    employee_master_with_ass_attributes_df = employee_master_with_ess_and_ass_df.query(
+        f"{ASSESSED_COL}"
+    ).merge(
         ass_df[APPROVER_COLUMNS],
         left_on=HR_MASTER_STAFFNUMBER,
         right_on=HR_MASTER_STAFFNUMBER,
-        how='inner',
+        how='left',
         validate="one_to_one"
     )
 
