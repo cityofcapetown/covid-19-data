@@ -21,6 +21,9 @@ HR_TRANSACTIONAL_COLUMNS = [HR_TRANSACTIONAL_STAFFNUMBER, 'Categories', HR_TRANS
 HR_COLUMNS_TO_FLATTEN = {HR_TRANSACTIONAL_STAFFNUMBER, 'Categories', 'Employee Name'}
 
 VALID_STATUSES = (
+    r"Working remotely \(COVID 19 exposure/isolation\)",
+    r"Working remotely \(NO COVID 19 exposure\)",
+    r"Working remotely \(Covid-19 exposure/isolation\)",
     r"Working remotely \(NO Covid-19 exposure\)",
     r"At work \(on site\)",
     "On leave",
