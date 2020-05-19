@@ -15,17 +15,29 @@ HR_MASTER_FILENAME_PATH = "data/private/city_people.csv"
 HR_TRANSACTIONAL_STAFFNUMBER = 'Employee No'
 HR_MASTER_STAFFNUMBER = 'StaffNumber'
 HR_TRANSACTION_DATE = 'Date'
+HR_STATUS = "Categories"
 HR_UNIT_EVALUATION = "Evaluation"
-HR_TRANSACTIONAL_COLUMNS = [HR_TRANSACTIONAL_STAFFNUMBER, 'Categories', HR_TRANSACTION_DATE, HR_UNIT_EVALUATION,
+HR_TRANSACTIONAL_COLUMNS = [HR_TRANSACTIONAL_STAFFNUMBER, HR_STATUS, HR_TRANSACTION_DATE, HR_UNIT_EVALUATION,
                             'Manager', 'Manager Staff No']
 
-HR_COLUMNS_TO_FLATTEN = {HR_TRANSACTIONAL_STAFFNUMBER, 'Categories', 'Employee Name'}
+HR_COLUMNS_TO_FLATTEN = {HR_TRANSACTIONAL_STAFFNUMBER, HR_STATUS, 'Employee Name'}
 
+STATUS_REMAP = {
+    r"Working remotely \(COVID 19 exposure/isolation\)": "Quarantine leave – working remotely, COVID 19 exposure / isolation",
+    r"Working remotely \(NO COVID 19 exposure\)": "Quarantine leave – working remotely",
+    r"Working remotely \(Covid-19 exposure/isolation\)": "Quarantine leave – working remotely, COVID 19 exposure / isolation",
+    r"Working remotely \(NO Covid-19 exposure\)": "Quarantine leave – working remotely",
+    r"Sick \(linked to Covid-19\)": r"Sick \(linked to COVID 19\)",
+    r"Sick \(NOT linked to Covid-19\)": r"Sick \(NOT linked to COVID 19\)",
+    "On Lockdown leave – unable to work remotely": "Quarantine leave – unable to work remotely",
+    "On Lockdown leave – able to work remotely": "Quarantine leave – working remotely",
+    "Depot Close Due to Positive Case": "Quarantine leave – working remotely, COVID 19 exposure / isolation",
+    "Depot closed due Positive Case": "Quarantine leave – working remotely, COVID 19 exposure / isolation",
+    "On Rotation": r"At work \(on site\)",
+    "Sick (NOT linked to COVID-19)": r"Sick \(linked to COVID 19\)",
+    "Sick (linked to COVID-19)": r"Sick \(NOT linked to COVID 19\)"
+}
 VALID_STATUSES = (
-    r"Working remotely \(COVID 19 exposure/isolation\)",
-    r"Working remotely \(NO COVID 19 exposure\)",
-    r"Working remotely \(Covid-19 exposure/isolation\)",
-    r"Working remotely \(NO Covid-19 exposure\)",
     r"At work \(on site\)",
     "On leave",
     "On suspension",
@@ -33,9 +45,7 @@ VALID_STATUSES = (
     "Quarantine leave – working remotely",
     "Quarantine leave – unable to work remotely",
     "Quarantine leave – working remotely, COVID 19 exposure / isolation",
-    r"Sick \(linked to Covid-19\)",
     r"Sick \(linked to COVID 19\)",
-    r"Sick \(NOT linked to Covid-19\)",
     r"Sick \(NOT linked to COVID 19\)",
     "On Lockdown leave – unable to work remotely",
     "On Lockdown leave – able to work remotely"
@@ -44,11 +54,13 @@ STATUSES_VALIDITY_PATTERN = "^(" + ")$|^(".join(VALID_STATUSES) + "$)"
 
 EVALUATION_STATUS_REMAP = {
     'We can deliver on 75% or less of daily tasks': 'We can deliver 75% or less of daily tasks',
+    'We can do the bare minimum': 'We can deliver 75% or less of daily tasks',
+    'We can continue as normal': 'We can deliver on daily tasks',
+
 }
 VALID_EVALUATION_STATUSES = (
     'We can deliver on daily tasks',
     'We can deliver 75% or less of daily tasks',
-    'We can do the bare minimum', 'We can continue as normal',
     'We cannot deliver on daily tasks',
 )
 EVALUATION_VALIDITY_PATTERN = "^(" + ")$|^(".join(VALID_EVALUATION_STATUSES) + "$)"
@@ -58,8 +70,8 @@ HR_TRANSACTIONAL_COLUMN_VERIFICATION_FUNCS = {
     # col : (validation function, debugging function)
     HR_TRANSACTIONAL_STAFFNUMBER: (lambda col: (col.str.match(r"^\d{8}$") == True),
                                    lambda invalid_df: invalid_df[HR_TRANSACTIONAL_STAFFNUMBER].head(10)),
-    "Categories": (lambda col: (col.str.match(STATUSES_VALIDITY_PATTERN) == True),
-                   lambda invalid_df: invalid_df["Categories"].value_counts()),
+    HR_STATUS: (lambda col: (col.str.match(STATUSES_VALIDITY_PATTERN) == True),
+                   lambda invalid_df: invalid_df[HR_STATUS].value_counts()),
     HR_TRANSACTION_DATE: (lambda col: pandas.to_datetime(col, format=ISO8601_FORMAT, errors='coerce').notna(),
                           lambda invalid_df: invalid_df[HR_TRANSACTION_DATE].value_counts()),
     HR_UNIT_EVALUATION: (lambda col: (col.str.match(EVALUATION_VALIDITY_PATTERN) == True),
@@ -130,6 +142,14 @@ def flatten_hr_form(hr_df):
 
 def clean_hr_form(hr_df, master_df):
     logging.debug(f"hr_df.shape={hr_df.shape}")
+
+    # Extracting staff number
+    hr_df[HR_TRANSACTIONAL_STAFFNUMBER] = hr_df[HR_TRANSACTIONAL_STAFFNUMBER].astype(str).str.extract(".*(\d{8}).*")
+
+    # Remapping statuses
+    hr_df[HR_STATUS] = hr_df[HR_STATUS].apply(
+        lambda val: STATUS_REMAP.get(val, val)
+    )
 
     # Remapping evaluation statuses
     hr_df[HR_UNIT_EVALUATION] = hr_df[HR_UNIT_EVALUATION].apply(
