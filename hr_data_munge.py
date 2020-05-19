@@ -15,7 +15,8 @@ HR_MASTER_FILENAME_PATH = "data/private/city_people.csv"
 HR_TRANSACTIONAL_STAFFNUMBER = 'Employee No'
 HR_MASTER_STAFFNUMBER = 'StaffNumber'
 HR_TRANSACTION_DATE = 'Date'
-HR_TRANSACTIONAL_COLUMNS = [HR_TRANSACTIONAL_STAFFNUMBER, 'Categories', HR_TRANSACTION_DATE, 'Evaluation',
+HR_UNIT_EVALUATION = "Evaluation"
+HR_TRANSACTIONAL_COLUMNS = [HR_TRANSACTIONAL_STAFFNUMBER, 'Categories', HR_TRANSACTION_DATE, HR_UNIT_EVALUATION,
                             'Manager', 'Manager Staff No']
 
 HR_COLUMNS_TO_FLATTEN = {HR_TRANSACTIONAL_STAFFNUMBER, 'Categories', 'Employee Name'}
@@ -41,9 +42,12 @@ VALID_STATUSES = (
 )
 STATUSES_VALIDITY_PATTERN = "^(" + ")$|^(".join(VALID_STATUSES) + "$)"
 
+EVALUATION_STATUS_REMAP = {
+    'We can deliver on 75% or less of daily tasks': 'We can deliver 75% or less of daily tasks',
+}
 VALID_EVALUATION_STATUSES = (
-    'We can deliver on daily tasks ',
-    'We can deliver 75% or less of daily tasks ',
+    'We can deliver on daily tasks',
+    'We can deliver 75% or less of daily tasks',
     'We can do the bare minimum', 'We can continue as normal',
     'We cannot deliver on daily tasks',
 )
@@ -58,8 +62,8 @@ HR_TRANSACTIONAL_COLUMN_VERIFICATION_FUNCS = {
                    lambda invalid_df: invalid_df["Categories"].value_counts()),
     HR_TRANSACTION_DATE: (lambda col: pandas.to_datetime(col, format=ISO8601_FORMAT, errors='coerce').notna(),
                           lambda invalid_df: invalid_df[HR_TRANSACTION_DATE].value_counts()),
-    "Evaluation": (lambda col: (col.str.match(EVALUATION_VALIDITY_PATTERN) == True),
-                   lambda invalid_df: invalid_df["Evaluation"].value_counts())
+    HR_UNIT_EVALUATION: (lambda col: (col.str.match(EVALUATION_VALIDITY_PATTERN) == True),
+                         lambda invalid_df: invalid_df[HR_UNIT_EVALUATION].value_counts())
 }
 HR_TRANSACTIONAL_COLUMN_RENAME_DICT = {
     HR_TRANSACTIONAL_STAFFNUMBER: HR_MASTER_STAFFNUMBER,
@@ -126,6 +130,11 @@ def flatten_hr_form(hr_df):
 
 def clean_hr_form(hr_df, master_df):
     logging.debug(f"hr_df.shape={hr_df.shape}")
+
+    # Remapping evaluation statuses
+    hr_df[HR_UNIT_EVALUATION] = hr_df[HR_UNIT_EVALUATION].apply(
+        lambda val: EVALUATION_STATUS_REMAP.get(val, val)
+    )
 
     # Checking validity of HR DF, and *not* selecting invalid value
     hr_df["Valid"] = True
