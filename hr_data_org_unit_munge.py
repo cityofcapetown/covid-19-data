@@ -76,11 +76,13 @@ def get_org_unit_df(combined_df):
     flattened_org_unit_df = (
         # select the most common value in the evaluation col
         filled_df.groupby(groupby_cols, sort=False)
-            .apply(lambda df: pandas.DataFrame({
-                HR_TRANSACTION_EVALUATION: df[HR_TRANSACTION_EVALUATION].mode(),
-                HR_LOCATION: df[HR_LOCATION].mode(),
-                **df[HR_CATEGORIES].value_counts().to_dict()
-            }))
+                .apply(
+                    lambda df: pandas.DataFrame({
+                                    HR_TRANSACTION_EVALUATION: df[HR_TRANSACTION_EVALUATION].mode(),
+                                    HR_LOCATION: df[HR_LOCATION].mode(),
+                                    **df[HR_CATEGORIES].value_counts().to_dict()
+                    })
+            )
             # getting back to a dataframe
             .reset_index()
             # cleaning up the new index that appears
@@ -97,6 +99,12 @@ def get_org_unit_df(combined_df):
     melted_df.loc[:, "StatusCount"] = melted_df.loc[:, "StatusCount"].fillna(0)
     logging.debug(f"melted_df.head(5)=\n{melted_df.head(5)}")
     logging.debug(f"melted_df.columns=\n{melted_df.columns}")
+
+    # Coverage
+    logging.debug(f"melted_df.Directorate.value_counts()={melted_df.Directorate.value_counts()}")
+    logging.debug(f"melted_df.Department.value_counts()={melted_df.Department.value_counts()}")
+    logging.debug(f"melted_df.Branch.value_counts()={melted_df.Branch.value_counts()}")
+    logging.debug(f"melted_df.Section.value_counts()={melted_df.Branch.value_counts()}")
 
     return melted_df
 
