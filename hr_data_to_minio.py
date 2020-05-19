@@ -164,6 +164,8 @@ def get_excel_list_dfs(site_list, auth, proxy_dict, minio_access, minio_secret):
                     raw_df[SOURCE_COL_NAME] = file_url
                     raw_df[ACCESS_COL_NAME] = access_timestamp
 
+                    logging.debug(f"raw_df.head(10)=\n{raw_df.head(10)}")
+
                     yield raw_df
             else:
                 logging.debug("Not an Excel file, continuing..")
@@ -185,7 +187,7 @@ def get_combined_list_df(site, auth, proxy_dict, minio_access, minio_secret):
         batch_df[BATCH_COLUMN_MAP.keys()].rename(BATCH_COLUMN_MAP, axis='columns')
         for batch_list in SP_BATCH_LIST_NAMES
         for batch_df in get_excel_list_dfs(site.List(batch_list).GetListItems(),
-                                            auth, proxy_dict, minio_access, minio_secret)
+                                           auth, proxy_dict, minio_access, minio_secret)
     )
 
     # concat
