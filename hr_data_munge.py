@@ -51,10 +51,15 @@ EVALUATION_VALIDITY_PATTERN = "^(" + ")$|^(".join(VALID_EVALUATION_STATUSES) + "
 
 ISO8601_FORMAT = "%Y-%m-%d %H:%M:%S"
 HR_TRANSACTIONAL_COLUMN_VERIFICATION_FUNCS = {
-    HR_TRANSACTIONAL_STAFFNUMBER: lambda col: (col.str.match(r"^\d{8}$") == True),
-    "Categories": lambda col: (col.str.match(STATUSES_VALIDITY_PATTERN) == True),
-    HR_TRANSACTION_DATE: lambda col: pandas.to_datetime(col, format=ISO8601_FORMAT, errors='coerce').notna(),
-    "Evaluation": lambda col: (col.str.match(EVALUATION_VALIDITY_PATTERN) == True)
+    # col : (validation function, debugging function)
+    HR_TRANSACTIONAL_STAFFNUMBER: (lambda col: (col.str.match(r"^\d{8}$") == True),
+                                   lambda invalid_df: invalid_df[HR_TRANSACTIONAL_STAFFNUMBER].head(10)),
+    "Categories": (lambda col: (col.str.match(STATUSES_VALIDITY_PATTERN) == True),
+                   lambda invalid_df: invalid_df["Categories"].value_counts()),
+    HR_TRANSACTION_DATE: (lambda col: pandas.to_datetime(col, format=ISO8601_FORMAT, errors='coerce').notna(),
+                          lambda invalid_df: invalid_df[HR_TRANSACTION_DATE].value_count()),
+    "Evaluation": (lambda col: (col.str.match(EVALUATION_VALIDITY_PATTERN) == True),
+                   lambda invalid_df: invalid_df["Evaluation"].value_counts())
 }
 HR_TRANSACTIONAL_COLUMN_RENAME_DICT = {
     HR_TRANSACTIONAL_STAFFNUMBER: HR_MASTER_STAFFNUMBER,
@@ -124,12 +129,13 @@ def clean_hr_form(hr_df, master_df):
 
     # Checking validity of HR DF, and *not* selecting invalid value
     hr_df["Valid"] = True
-    for col, validity_func in HR_TRANSACTIONAL_COLUMN_VERIFICATION_FUNCS.items():
+    for col, validity_func, debug_func in HR_TRANSACTIONAL_COLUMN_VERIFICATION_FUNCS.items():
         col_validity = validity_func(hr_df[col])
 
         if col_validity.sum() > 0:
             logging.warning(f"Found {(~col_validity).sum()} invalid values in attribute '{col}'")
             logging.debug(f"hr_df[~col_validity].head(10)=\n{hr_df[~col_validity].head(10)}")
+            logging.debug(f"debug_func(hr_df[~col_validity])=\n{debug_func(hr_df[~col_validity])}")
 
         hr_df.Valid &= col_validity
 
