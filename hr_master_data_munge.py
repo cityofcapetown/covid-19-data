@@ -26,7 +26,7 @@ ASSESSED_COL = "AssessedStaff"
 HR_MASTER_FILENAME_PATH = "data/private/city_people"
 
 DEPARTMENT_COL = "Department"
-OVERRIDE_DEPTS = {"solid waste management", }
+OVERRIDE_DEPTS = {"solid waste management", "water and sanitation services"}
 
 
 def get_data_df(filename, minio_access, minio_secret):
@@ -79,6 +79,11 @@ def merge_in_attribute_data(master_df, ess_df, ass_df):
     ] = True
 
     logging.debug(
+        f"employee_master_with_ess_and_ass_df[DEPARTMENT_COL].value_counts()=\n"
+        f"{employee_master_with_ess_and_ass_df[DEPARTMENT_COL].value_counts()}"
+    )
+
+    logging.debug(
         f"employee_master_with_ess_and_ass_df['{ESSENTIAL_COL}'].sum()/"
         f"employee_master_with_ess_and_ass_df.shape[0]="
         f"{employee_master_with_ess_and_ass_df[ESSENTIAL_COL].sum()}/"
@@ -128,11 +133,11 @@ if __name__ == "__main__":
 
     logging.info("Fetch[ing] HR master data")
     hr_master_ingestion_df = get_data_df(HR_MASTER_INGESTION_FILENAME_PATH,
-                               secrets["minio"]["edge"]["access"],
-                               secrets["minio"]["edge"]["secret"])
+                                         secrets["minio"]["edge"]["access"],
+                                         secrets["minio"]["edge"]["secret"])
     hr_master_location_df = get_data_df(HR_MASTER_LOCATION_FILENAME_PATH,
-                               secrets["minio"]["edge"]["access"],
-                               secrets["minio"]["edge"]["secret"])
+                                        secrets["minio"]["edge"]["access"],
+                                        secrets["minio"]["edge"]["secret"])
     hr_master_ess_df = get_data_df(HR_MASTER_ESS_FILENAME_PATH,
                                    secrets["minio"]["edge"]["access"],
                                    secrets["minio"]["edge"]["secret"])

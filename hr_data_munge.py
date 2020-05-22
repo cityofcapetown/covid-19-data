@@ -39,7 +39,6 @@ STATUSES_VALIDITY_PATTERN = "^(" + ")$|^(".join(VALID_STATUSES) + "$)"
 
 STATUS_REMAP = {
     "At work \(on site\)": r"At work \(on site\)",
-    r'At work \(on site\)': r"At work \(on site\)",
     r"Working remotely (COVID 19 exposure/isolation)": "Quarantine leave – working remotely, COVID 19 exposure / isolation",
     r"Working remotely (NO COVID 19 exposure)": "Quarantine leave – working remotely",
     r"Working remotely (Covid-19 exposure/isolation)": "Quarantine leave – working remotely, COVID 19 exposure / isolation",
@@ -51,16 +50,17 @@ STATUS_REMAP = {
     "Depot Close Due to Positive Case": "Quarantine leave – working remotely, COVID 19 exposure / isolation",
     "Depot closed due Positive Case": "Quarantine leave – working remotely, COVID 19 exposure / isolation",
     "On Rotation": r"At work \(on site\)",
+    'Sick \(NOT linked to COVID 19\)': r"Sick \(linked to COVID 19\)",
     r"Sick \(NOT linked to COVID-19\)": r"Sick \(NOT linked to COVID 19\)",
     'Sick (NOT linked to COVID-19)': r"Sick \(NOT linked to COVID 19\)",
     'Sick (NOT linked to Covid-19)': r"Sick \(NOT linked to COVID 19\)",
-    'Sick \(NOT linked to COVID 19\)': r"Sick \(NOT linked to COVID 19\)",
     "Sick \(linked to COVID-19\)": r"Sick \(linked to COVID 19\)",
     r'Sick \(linked to COVID 19\)': r"Sick \(linked to COVID 19\)",
     "Sick (linked to COVID-19)": r"Sick \(linked to COVID 19\)",
     "Sick (linked to Covid-19)": r"Sick \(linked to COVID 19\)",
     "Quarantine leave - unable to work remotely": "Quarantine leave – unable to work remotely",
     "Quarantine leave - working remotely, COVID 19 exposure / isolation": "Quarantine leave – working remotely, COVID 19 exposure / isolation",
+    "Quarantine leave - working remotely, COVID-19 exposure / isolation": "Quarantine leave – working remotely, COVID 19 exposure / isolation",
     "Quarantine leave - working remotely, COVID-19 exposure/isolation": "Quarantine leave – working remotely, COVID 19 exposure / isolation",
     "Quarantine leave - working remotely, COVID-10 exposure/isolation": "Quarantine leave – working remotely, COVID 19 exposure / isolation",
     "Quarantine leave - working remotely": "Quarantine leave – working remotely",
@@ -247,6 +247,10 @@ def update_hr_form(cleaned_hr_df):
     deduped_df = combined_df.sort_values(
         by=[HR_TRANSACTION_DATE], ascending=False
     ).drop_duplicates(subset=[HR_MASTER_STAFFNUMBER, dummy_date_col])
+
+    logging.debug(
+        f"deduped_df['{HR_TRANSACTION_DATE}'].value_counts()=\n{deduped_df[HR_TRANSACTION_DATE].value_counts()}"
+    )
 
     logging.debug(f"deduped_df.shape={deduped_df.shape}")
     logging.debug(f"Got {deduped_df.shape[0] - current_state_df.shape[0]} new values")

@@ -36,7 +36,7 @@ XML_FIELD_NAMES = [
 ]
 ISO8601_FORMAT = "%Y-%m-%d %H:%M:%S"
 
-SP_BATCH_LIST_NAMES = ['SWM Batch Submissions']
+SP_BATCH_LIST_NAMES = ['SWM Batch Submissions', 'WS Batch Submissions']
 BATCH_COLUMN_MAP = {
     'Date': 'Date',
     'Evaluation': 'Evaluation',
@@ -155,7 +155,11 @@ def get_excel_list_dfs(site_list, auth, proxy_dict, minio_access, minio_secret):
                 data_classification=minio_utils.DataClassification.EDGE,
             )
 
-            if local_path.endswith("xlsx") or local_path.endswith("xls"):
+            is_excel_file = any(map(
+                lambda ext: local_path.endswith(ext),
+                ("xlsx", "xls", "XLSX", "XLS")
+            ))
+            if is_excel_file:
                 logging.debug(f"Generating df from downloaded file")
                 for data_sheet_name, raw_df in pandas.read_excel(local_path, sheet_name=None, dtype="object").items():
                     logging.debug(f"Reading sheet'{data_sheet_name}'")
