@@ -81,7 +81,8 @@ def get_prov_files(sftp):
             filename = sftp_file.filename
             local_path = os.path.join(tempdir, filename)
             # This is reliant on the file's modified time, hence it's probably the latest
-            probably_latest = sftp_file is list_of_files[-1]
+            last_sftp_file, _ = list_of_files[-1]
+            probably_latest = sftp_file is last_sftp_file
             logging.debug(f"local_path={local_path}, probably_latest={probably_latest}")
 
             yield local_path, probably_latest
@@ -98,8 +99,8 @@ def get_zipfile_contents(zfilename, zfile_password, latest):
             local_path = os.path.join(tempdir, zcontent_filename)
             yield PROV_HEALTH_BACKUP_PREFIX, local_path
 
-            # Additionally, if this looks like the covid sum file, and its the latest
-            # then make a generic symlink for it
+            # Additionally, if this looks like a covid sum file, and its the latest
+            # then make a generic latest file symlink for it
             if re.match(COVID_SUM_FILENAME_REGEX, zcontent_filename) and latest:
                 latest_file_local_path = os.path.join(tempdir, COVID_SUM_FILENAME)
                 os.link(local_path, latest_file_local_path)
@@ -131,6 +132,7 @@ if __name__ == "__main__":
 
     # Getting files from provincial server
     logging.info("Get[ing] files from FTP server...")
+    seen_the_latest_covid_sum_file = False
     for ftp_file_path, probably_latest_file in get_prov_files(sftp_client):
         logging.debug(f"Backing up {ftp_file_path}...")
         minio_utils.file_to_minio(
@@ -147,6 +149,9 @@ if __name__ == "__main__":
             for file_path_prefix, zcontent_file_path in get_zipfile_contents(ftp_file_path,
                                                            secrets["ftp"]["wcgh"]["password"],
                                                            probably_latest_file):
+                if COVID_SUM_FILENAME in zcontent_file_path:
+                    seen_the_latest_covid_sum_file = True
+
                 logging.debug(f"...extracted {zcontent_file_path}")
                 minio_utils.file_to_minio(
                     filename=zcontent_file_path,
@@ -156,4 +161,7 @@ if __name__ == "__main__":
                     minio_secret=secrets["minio"]["edge"]["secret"],
                     data_classification=BUCKET_CLASSIFICATION,
                 )
+
+    assert seen_the_latest_covid_sum_file, "Did *not* copy a latest file"
+
     logging.info("G[ot] files from FTP server")
