@@ -36,7 +36,7 @@ XML_FIELD_NAMES = [
 ]
 ISO8601_FORMAT = "%Y-%m-%d %H:%M:%S"
 
-SP_BATCH_LIST_NAMES = ['SWM Batch Submissions']
+SP_BATCH_LIST_NAMES = ['SWM Batch Submissions', 'WS Batch Submissions']
 BATCH_COLUMN_MAP = {
     'Date': 'Date',
     'Evaluation': 'Evaluation',
@@ -155,14 +155,20 @@ def get_excel_list_dfs(site_list, auth, proxy_dict, minio_access, minio_secret):
                 data_classification=minio_utils.DataClassification.EDGE,
             )
 
-            if local_path.endswith("xlsx") or local_path.endswith("xls"):
+            is_excel_file = any(map(
+                lambda ext: local_path.endswith(ext),
+                ("xlsx", "xls", "XLSX", "XLS")
+            ))
+            if is_excel_file:
                 logging.debug(f"Generating df from downloaded file")
-                for data_sheet_name, raw_df in pandas.read_excel(local_path, sheet_name=None).items():
+                for data_sheet_name, raw_df in pandas.read_excel(local_path, sheet_name=None, dtype="object").items():
                     logging.debug(f"Reading sheet'{data_sheet_name}'")
 
                     logging.debug(f"Setting '{SOURCE_COL_NAME}'='{file_url}', '{ACCESS_COL_NAME}'={access_timestamp}")
                     raw_df[SOURCE_COL_NAME] = file_url
                     raw_df[ACCESS_COL_NAME] = access_timestamp
+
+                    logging.debug(f"raw_df.head(10)=\n{raw_df.head(10)}")
 
                     yield raw_df
             else:
@@ -185,7 +191,7 @@ def get_combined_list_df(site, auth, proxy_dict, minio_access, minio_secret):
         batch_df[BATCH_COLUMN_MAP.keys()].rename(BATCH_COLUMN_MAP, axis='columns')
         for batch_list in SP_BATCH_LIST_NAMES
         for batch_df in get_excel_list_dfs(site.List(batch_list).GetListItems(),
-                                            auth, proxy_dict, minio_access, minio_secret)
+                                           auth, proxy_dict, minio_access, minio_secret)
     )
 
     # concat

@@ -3,6 +3,7 @@ import os
 import logging
 import re
 import sys
+import stat
 import tempfile
 import zipfile
 
@@ -40,32 +41,48 @@ def get_sftp_client(proxy_username, proxy_password, ftp_username, ftp_password):
     return sftp
 
 
+def sftp_flatten(parent_path, sftp):
+    for sftp_fileattr in sftp.listdir_attr(parent_path):
+        remote_path = os.path.join(parent_path, sftp_fileattr.filename)
+
+        logging.debug(f"remote_path={remote_path}, "
+                      f"stat.S_ISDIR(sftp_fileattr.st_mode)={stat.S_ISDIR(sftp_fileattr.st_mode)}")
+
+        if stat.S_ISDIR(sftp_fileattr.st_mode):
+            for child_fileattr, child_path in sftp_flatten(remote_path, sftp):
+                yield child_fileattr, child_path
+        else:
+            yield sftp_fileattr, remote_path
+
+
 def get_prov_files(sftp):
-    list_of_files = sftp.listdir_attr(FTP_SYNC_DIR_NAME)
+    # Recursive fetch of files and their paths
+    list_of_files = list(sftp_flatten(FTP_SYNC_DIR_NAME, sftp))
+
     # Sorting by modification time
-    list_of_files.sort(key=lambda sftp_file: sftp_file.st_mtime)
+    list_of_files.sort(key=lambda sftp_file_tuple: sftp_file_tuple[0].st_mtime)
 
     filename_list = ', '.join(map(
-        lambda sftp_file: sftp_file.filename, list_of_files
+        lambda sftp_file_tuple: sftp_file_tuple[1], list_of_files
     ))
     logging.debug(f"Got the following list of files from FTP server: '{filename_list}'")
 
     with tempfile.TemporaryDirectory() as tempdir:
         # Getting the files from the FTP server
-        for sftp_file in list_of_files:
+        for sftp_file, sftp_file_remote_path in list_of_files:
             filename = sftp_file.filename
-            logging.debug(f"Getting {filename}...")
+            logging.debug(f"Getting '{sftp_file_remote_path}'...")
             local_path = os.path.join(tempdir, filename)
-            ftp_path = os.path.join(FTP_SYNC_DIR_NAME, filename)
 
-            sftp.get(ftp_path, local_path)
+            sftp.get(sftp_file_remote_path, local_path)
 
         # Still doing this within the tempdir context manager
-        for sftp_file in list_of_files:
+        for sftp_file, _ in list_of_files:
             filename = sftp_file.filename
             local_path = os.path.join(tempdir, filename)
             # This is reliant on the file's modified time, hence it's probably the latest
-            probably_latest = sftp_file is list_of_files[-1]
+            last_sftp_file, _ = list_of_files[-1]
+            probably_latest = sftp_file is last_sftp_file
             logging.debug(f"local_path={local_path}, probably_latest={probably_latest}")
 
             yield local_path, probably_latest
@@ -82,8 +99,8 @@ def get_zipfile_contents(zfilename, zfile_password, latest):
             local_path = os.path.join(tempdir, zcontent_filename)
             yield PROV_HEALTH_BACKUP_PREFIX, local_path
 
-            # Additionally, if this looks like the covid sum file, and its the latest
-            # then make a generic symlink for it
+            # Additionally, if this looks like a covid sum file, and its the latest
+            # then make a generic latest file symlink for it
             if re.match(COVID_SUM_FILENAME_REGEX, zcontent_filename) and latest:
                 latest_file_local_path = os.path.join(tempdir, COVID_SUM_FILENAME)
                 os.link(local_path, latest_file_local_path)
@@ -115,6 +132,7 @@ if __name__ == "__main__":
 
     # Getting files from provincial server
     logging.info("Get[ing] files from FTP server...")
+    seen_the_latest_covid_sum_file = False
     for ftp_file_path, probably_latest_file in get_prov_files(sftp_client):
         logging.debug(f"Backing up {ftp_file_path}...")
         minio_utils.file_to_minio(
@@ -131,6 +149,9 @@ if __name__ == "__main__":
             for file_path_prefix, zcontent_file_path in get_zipfile_contents(ftp_file_path,
                                                            secrets["ftp"]["wcgh"]["password"],
                                                            probably_latest_file):
+                if COVID_SUM_FILENAME in zcontent_file_path:
+                    seen_the_latest_covid_sum_file = True
+
                 logging.debug(f"...extracted {zcontent_file_path}")
                 minio_utils.file_to_minio(
                     filename=zcontent_file_path,
@@ -140,4 +161,7 @@ if __name__ == "__main__":
                     minio_secret=secrets["minio"]["edge"]["secret"],
                     data_classification=BUCKET_CLASSIFICATION,
                 )
+
+    assert seen_the_latest_covid_sum_file, "Did *not* copy a latest file"
+
     logging.info("G[ot] files from FTP server")

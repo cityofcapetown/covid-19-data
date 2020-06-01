@@ -25,6 +25,9 @@ APPROVER_COLUMNS = ["Persno",
 ASSESSED_COL = "AssessedStaff"
 HR_MASTER_FILENAME_PATH = "data/private/city_people"
 
+DEPARTMENT_COL = "Department"
+OVERRIDE_DEPTS = {"solid waste management", "water and sanitation services"}
+
 
 def get_data_df(filename, minio_access, minio_secret):
     with tempfile.NamedTemporaryFile() as temp_data_file:
@@ -54,31 +57,38 @@ def merge_in_location_data(master_df, location_df):
         validate="one_to_one",
         how="left"
     )
+    employee_master_with_loc_df[HR_EXPECTED_STAFFNUMBER] = employee_master_with_loc_df[HR_MASTER_STAFFNUMBER]
     logging.debug(f"employee_master_with_loc_df.shape={employee_master_with_loc_df.shape}")
 
     return employee_master_with_loc_df
 
 
 def merge_in_attribute_data(master_df, ess_df, ass_df):
-    # Marking essential staff
-    employee_master_with_ess_df = master_df.copy().assign(
-        **{ESSENTIAL_COL: master_df[HR_MASTER_STAFFNUMBER].isin(ess_df[HR_MASTER_STAFFNUMBER])}
+    # Marking essential and assessed staff
+    employee_master_with_ess_and_ass_df = master_df.copy().assign(
+        **{ESSENTIAL_COL: master_df[HR_MASTER_STAFFNUMBER].isin(ess_df[HR_MASTER_STAFFNUMBER])},
+        **{ASSESSED_COL: master_df[HR_MASTER_STAFFNUMBER].isin(ass_df[HR_MASTER_STAFFNUMBER])}
     )
+
+    # Setting assessed flag using override departments list
+    employee_master_with_ess_and_ass_df.loc[
+        employee_master_with_ess_and_ass_df.query(
+            f"{DEPARTMENT_COL}.str.lower().isin(@OVERRIDE_DEPTS)"
+        ).index,
+        ASSESSED_COL
+    ] = True
+
     logging.debug(
-        f"employee_master_with_ess_df['{ESSENTIAL_COL}'].sum()={employee_master_with_ess_df[ESSENTIAL_COL].sum()}"
+        f"employee_master_with_ess_and_ass_df[DEPARTMENT_COL].value_counts()=\n"
+        f"{employee_master_with_ess_and_ass_df[DEPARTMENT_COL].value_counts()}"
     )
 
-    # Getting approver cols
-    employee_master_with_ess_and_ass_df = employee_master_with_ess_df.merge(
-        ass_df[APPROVER_COLUMNS],
-        left_on=HR_MASTER_STAFFNUMBER,
-        right_on=HR_MASTER_STAFFNUMBER,
-        validate="one_to_one"
+    logging.debug(
+        f"employee_master_with_ess_and_ass_df['{ESSENTIAL_COL}'].sum()/"
+        f"employee_master_with_ess_and_ass_df.shape[0]="
+        f"{employee_master_with_ess_and_ass_df[ESSENTIAL_COL].sum()}/"
+        f"{employee_master_with_ess_and_ass_df.shape[0]}"
     )
-    employee_master_with_ess_and_ass_df[ASSESSED_COL] = (
-        employee_master_with_ess_and_ass_df['Approver Staff No'].notna()
-    )
-
     logging.debug(
         f"employee_master_with_ess_and_ass_df['{ASSESSED_COL}'].sum()/"
         f"employee_master_with_ess_and_ass_df.shape[0]="
@@ -86,14 +96,24 @@ def merge_in_attribute_data(master_df, ess_df, ass_df):
         f"{employee_master_with_ess_and_ass_df.shape[0]}"
     )
 
-    return employee_master_with_ess_and_ass_df
+    # Joining in assessed attributes
+    employee_master_with_ass_attributes_df = employee_master_with_ess_and_ass_df.query(
+        f"{ASSESSED_COL}"
+    ).merge(
+        ass_df[APPROVER_COLUMNS],
+        left_on=HR_MASTER_STAFFNUMBER,
+        right_on=HR_MASTER_STAFFNUMBER,
+        how='left',
+        validate="one_to_one"
+    )
+
+    return employee_master_with_ass_attributes_df
 
 
 def validate_hr_data(master_df):
-    assert (
-        master_df.shape[0] == master_df[HR_EXPECTED_STAFFNUMBER].nunique(),
-        (f"master_df.shape[0]={master_df.shape[0]} vs "
-         f"master_df[HR_MASTER_STAFFNUMBER].nunique()={master_df[HR_EXPECTED_STAFFNUMBER].nunique()}")
+    assert master_df.shape[0] == master_df[HR_EXPECTED_STAFFNUMBER].nunique(), (
+        f"master_df.shape[0]={master_df.shape[0]} vs "
+        f"master_df[HR_MASTER_STAFFNUMBER].nunique()={master_df[HR_EXPECTED_STAFFNUMBER].nunique()}"
     )
 
 
@@ -113,11 +133,11 @@ if __name__ == "__main__":
 
     logging.info("Fetch[ing] HR master data")
     hr_master_ingestion_df = get_data_df(HR_MASTER_INGESTION_FILENAME_PATH,
-                               secrets["minio"]["edge"]["access"],
-                               secrets["minio"]["edge"]["secret"])
+                                         secrets["minio"]["edge"]["access"],
+                                         secrets["minio"]["edge"]["secret"])
     hr_master_location_df = get_data_df(HR_MASTER_LOCATION_FILENAME_PATH,
-                               secrets["minio"]["edge"]["access"],
-                               secrets["minio"]["edge"]["secret"])
+                                        secrets["minio"]["edge"]["access"],
+                                        secrets["minio"]["edge"]["secret"])
     hr_master_ess_df = get_data_df(HR_MASTER_ESS_FILENAME_PATH,
                                    secrets["minio"]["edge"]["access"],
                                    secrets["minio"]["edge"]["secret"])

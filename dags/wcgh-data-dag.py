@@ -80,3 +80,6 @@ def covid_19_data_task(task_name, task_kwargs={}):
 # Defining tasks
 WCGH_FETCH_TASK = 'wcgh-data-fetch'
 wcgh_data_fetch_operator = covid_19_data_task(WCGH_FETCH_TASK)
+
+WCGH_PUSH_TASK = 'wcgh-data-push'
+wcgh_data_push_operator = covid_19_data_task(WCGH_PUSH_TASK)
