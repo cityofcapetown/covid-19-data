@@ -94,6 +94,15 @@ covid_key_announcements <- read_excel(public_announcements, sheet = "Key announc
 write_csv(covid_general_announcements, "data/public/covid_general_announcements.csv")
 write_csv(covid_key_announcements, "data/public/covid_key_announcements.csv")
 
+
+# GLOBAL EXCESS DEATHS ==========================
+# Pull raw data
+ft_excess_deaths <- read_csv(
+  remote_file("https://raw.githubusercontent.com/Financial-Times/coronavirus-excess-mortality-data/master/data/ft_excess_deaths.csv"))
+# Write raw data
+write_csv(ft_excess_deaths, "data/public/ft_excess_deaths.csv")
+
+
 # GLOBAL DATA ==================================
 # time_series_19-covid-Confirmed ---
 # Pull raw data
