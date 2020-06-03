@@ -83,3 +83,9 @@ wcgh_data_fetch_operator = covid_19_data_task(WCGH_FETCH_TASK)
 
 WCGH_PUSH_TASK = 'wcgh-data-push'
 wcgh_data_push_operator = covid_19_data_task(WCGH_PUSH_TASK)
+
+WCGH_CKAN_PUSH_TASK = 'wcgh-ckan-data-push'
+wcgh_ckan_data_push_operator = covid_19_data_task(WCGH_CKAN_PUSH_TASK)
+
+# Dependencies
+wcgh_data_fetch_operator >> wcgh_ckan_data_push_operator
