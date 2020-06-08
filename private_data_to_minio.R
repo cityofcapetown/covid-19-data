@@ -106,6 +106,12 @@ minio_to_file(wc_case_data,
 
 wc_all_cases <- read_tsv(wc_case_data) %>% dplyr::rename_all(list(~make.names(.)))
 
+if (sum(is.na(wc_all_cases$Date.of.Diagnosis)) / nrow(wc_all_cases) >= 0.1) {
+  stop("More than 10% of the WC case data has NA dates")
+}
+
+wc_all_cases <- wc_all_cases %>% drop_na(Date.of.Diagnosis)
+
 # drop bad dates
 max_date <- Sys.time()
 min_date <- ymd("2020-03-01")
