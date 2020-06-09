@@ -23,47 +23,69 @@ HR_TRANSACTIONAL_COLUMNS = [HR_TRANSACTIONAL_STAFFNUMBER, HR_STATUS, HR_TRANSACT
 HR_COLUMNS_TO_FLATTEN = {HR_TRANSACTIONAL_STAFFNUMBER, HR_STATUS, 'Employee Name'}
 
 VALID_STATUSES = (
-    r"At work \(on site\)",
-    "On leave",
-    "On suspension",
-    r"Absent from work \(unauthorised\)",
-    "Quarantine leave – unable to work remotely",
-    "Quarantine leave – working remotely, COVID 19 exposure / isolation",
-    r"Sick \(linked to COVID 19\)",
-    r"Sick \(NOT linked to COVID 19\)",
-    "On Lockdown leave – unable to work remotely",
-    "On Lockdown leave – able to work remotely",
-    "Quarantine leave – working remotely"
+    'At work',
+    'Working from Home',
+    'Off-Site',
+    'COVID-19 Quarantine – Working',
+    'COVID-19 Quarantine - Not Working',
+    'COVID-19 Lockdown',
+    'Sick Leave (linked to COVID-19)',
+    'Sick Leave (NOT linked to COVID-19)',
+    'Leave',
+    'Suspended',
+    'Absent'
 )
 STATUSES_VALIDITY_PATTERN = "^(" + ")$|^(".join(VALID_STATUSES) + "$)"
 
 STATUS_REMAP = {
-    "At work \(on site\)": r"At work \(on site\)",
-    r"Working remotely (COVID 19 exposure/isolation)": "Quarantine leave – working remotely, COVID 19 exposure / isolation",
-    r"Working remotely (NO COVID 19 exposure)": "Quarantine leave – working remotely",
-    r"Working remotely (Covid-19 exposure/isolation)": "Quarantine leave – working remotely, COVID 19 exposure / isolation",
-    r"Working remotely (NO Covid-19 exposure)": "Quarantine leave – working remotely",
-    r"Sick \(linked to Covid-19\)": r"Sick \(linked to COVID 19\)",
-    r"Sick \(NOT linked to Covid-19\)": r"Sick \(NOT linked to COVID 19\)",
-    "On Lockdown leave – unable to work remotely": "Quarantine leave – unable to work remotely",
-    "On Lockdown leave – able to work remotely": "Quarantine leave – working remotely",
-    "Depot Close Due to Positive Case": "Quarantine leave – working remotely, COVID 19 exposure / isolation",
-    "Depot closed due Positive Case": "Quarantine leave – working remotely, COVID 19 exposure / isolation",
-    "On Rotation": r"At work \(on site\)",
-    'Sick \(NOT linked to COVID 19\)': r"Sick \(linked to COVID 19\)",
-    r"Sick \(NOT linked to COVID-19\)": r"Sick \(NOT linked to COVID 19\)",
-    'Sick (NOT linked to COVID-19)': r"Sick \(NOT linked to COVID 19\)",
-    'Sick (NOT linked to Covid-19)': r"Sick \(NOT linked to COVID 19\)",
-    "Sick \(linked to COVID-19\)": r"Sick \(linked to COVID 19\)",
-    r'Sick \(linked to COVID 19\)': r"Sick \(linked to COVID 19\)",
-    "Sick (linked to COVID-19)": r"Sick \(linked to COVID 19\)",
-    "Sick (linked to Covid-19)": r"Sick \(linked to COVID 19\)",
-    "Quarantine leave - unable to work remotely": "Quarantine leave – unable to work remotely",
-    "Quarantine leave - working remotely, COVID 19 exposure / isolation": "Quarantine leave – working remotely, COVID 19 exposure / isolation",
-    "Quarantine leave - working remotely, COVID-19 exposure / isolation": "Quarantine leave – working remotely, COVID 19 exposure / isolation",
-    "Quarantine leave - working remotely, COVID-19 exposure/isolation": "Quarantine leave – working remotely, COVID 19 exposure / isolation",
-    "Quarantine leave - working remotely, COVID-10 exposure/isolation": "Quarantine leave – working remotely, COVID 19 exposure / isolation",
-    "Quarantine leave - working remotely": "Quarantine leave – working remotely",
+    # Previous Statuses
+    "At work (on site)": 'At work',
+    "On leave": 'Leave',
+    "On suspension": 'Suspended',
+    'Absent from work (unauthorised)': 'Absent',
+    "Quarantine leave – unable to work remotely": 'COVID-19 Lockdown',
+    "Quarantine leave – working remotely, COVID 19 exposure / isolation": 'COVID-19 Quarantine – Working',
+    'Sick Leave (linked to COVID-19)': 'Sick Leave (linked to COVID-19)',
+    r"Sick \(NOT linked to COVID 19\)": 'Sick Leave (NOT linked to COVID-19)',
+    "On Lockdown leave – unable to work remotely": 'COVID-19 Lockdown',
+    "On Lockdown leave – able to work remotely": 'Working from Home',
+    "Quarantine leave – working remotely": 'Working from Home',
+
+    # Other permutations seen
+    r"Absent from work \(unauthorised\)": 'Absent',
+    'At work \\\\(on site\\\\)': 'At work',
+    r"At work \(on site\)": 'At work',
+    r"Working remotely (COVID 19 exposure/isolation)": 'COVID-19 Quarantine – Working',
+    r"Working remotely (NO COVID 19 exposure)": 'Working from Home',
+    r"Working remotely (Covid-19 exposure/isolation)": 'COVID-19 Quarantine – Working',
+    r"Working remotely (NO Covid-19 exposure)": 'Working from Home',
+    'Sick (linked to COVID 19)': 'Sick Leave (linked to COVID-19)',
+    r"Sick \(linked to Covid-19\)": 'Sick Leave (linked to COVID-19)',
+    r"Sick \(NOT linked to Covid-19\)": 'Sick Leave (NOT linked to COVID-19)',
+    'Sick Leave (NOT linked to COVID-19)': 'Sick Leave (NOT linked to COVID-19)',
+    "Depot Close Due to Positive Case": 'COVID-19 Quarantine – Working',
+    "Depot closed due Positive Case": 'COVID-19 Quarantine – Working',
+    "On Rotation": 'At work',
+    'Sick (NOT linked to COVID 19)': 'Sick Leave (NOT linked to COVID-19)',
+    'Sick \\\\(NOT linked to COVID 19\\\\)': 'Sick Leave (linked to COVID-19)',
+    r"Sick \(NOT linked to COVID-19\)": 'Sick Leave (NOT linked to COVID-19)',
+    'Sick (NOT linked to COVID-19)': 'Sick Leave (NOT linked to COVID-19)',
+    'Sick (NOT linked to Covid-19)': 'Sick Leave (NOT linked to COVID-19)',
+    'Sick \\\\(linked to COVID 19\\\\)': 'Sick Leave (linked to COVID-19)',
+    r"Sick \(linked to COVID 19\)": 'Sick Leave (linked to COVID-19)',
+    "Sick \(linked to COVID-19\)": 'Sick Leave (linked to COVID-19)',
+    "Sick (linked to COVID-19)": 'Sick Leave (linked to COVID-19)',
+    "Sick (linked to Covid-19)": 'Sick Leave (linked to COVID-19)',
+    'Sick (Linked to Covid-19)': 'Sick Leave (linked to COVID-19)',
+    'Shift rest days': 'Leave',
+    'quarantine leave - unable to work remotely': 'COVID-19 Lockdown',
+    "Quarantine leave - unable to work remotely": 'COVID-19 Lockdown',
+    "Quarantine leave - working remotely, COVID 19 exposure / isolation": 'COVID-19 Quarantine – Working',
+    "Quarantine leave - working remotely, COVID-19 exposure / isolation": 'COVID-19 Quarantine – Working',
+    "Quarantine leave - working remotely, COVID-19 exposure/isolation": 'COVID-19 Quarantine – Working',
+    "Quarantine leave - working remotely, COVID-10 exposure/isolation": 'COVID-19 Quarantine – Working',
+    'Quarantine leave - unable to work remotely, COVID-19 exposure/isolation': 'COVID-19 Quarantine - Not Working',
+    "Quarantine leave - working remotely": 'Working from Home',
 }
 for val in STATUS_REMAP.values():
     assert val in VALID_STATUSES, f"{val} not in status list"
@@ -134,7 +156,6 @@ def flatten_hr_form(hr_df):
     already_flat = True
     for col in HR_COLUMNS_TO_FLATTEN:
         flat_mask = hr_df[col].str.contains(";") == True
-        logging.debug(flat_mask)
         already_flat &= ~(flat_mask)
 
     logging.debug(f"Not flattening '{(already_flat).sum()}'/'{hr_df.shape[0]}' because they seem to already be flat")
