@@ -35,7 +35,6 @@ VALID_STATUSES = (
     'Suspended',
     'Absent'
 )
-STATUSES_VALIDITY_PATTERN = "^(" + ")$|^(".join(VALID_STATUSES) + "$)"
 
 STATUS_REMAP = {
     # Previous Statuses
@@ -45,7 +44,6 @@ STATUS_REMAP = {
     'Absent from work (unauthorised)': 'Absent',
     "Quarantine leave – unable to work remotely": 'COVID-19 Lockdown',
     "Quarantine leave – working remotely, COVID 19 exposure / isolation": 'COVID-19 Quarantine – Working',
-    'Sick Leave (linked to COVID-19)': 'Sick Leave (linked to COVID-19)',
     r"Sick \(NOT linked to COVID 19\)": 'Sick Leave (NOT linked to COVID-19)',
     "On Lockdown leave – unable to work remotely": 'COVID-19 Lockdown',
     "On Lockdown leave – able to work remotely": 'Working from Home',
@@ -95,7 +93,6 @@ VALID_EVALUATION_STATUSES = (
     'We can deliver 75% or less of daily tasks',
     'We cannot deliver on daily tasks',
 )
-EVALUATION_VALIDITY_PATTERN = "^(" + ")$|^(".join(VALID_EVALUATION_STATUSES) + "$)"
 
 EVALUATION_STATUS_REMAP = {
     'We can deliver on 75% or less of daily tasks': 'We can deliver 75% or less of daily tasks',
@@ -111,13 +108,13 @@ HR_TRANSACTIONAL_COLUMN_VERIFICATION_FUNCS = {
     # col : (validation function, debugging function)
     HR_TRANSACTIONAL_STAFFNUMBER: (lambda col: (col.str.match(r"^\d{8}$") == True),
                                    lambda invalid_df: invalid_df[HR_TRANSACTIONAL_STAFFNUMBER].head(10)),
-    HR_STATUS: (lambda col: (col.str.match(STATUSES_VALIDITY_PATTERN) == True),
+    HR_STATUS: (lambda col: (col.isin(VALID_STATUSES) == True),
                 lambda
                     invalid_df: f"\n{invalid_df[HR_STATUS].value_counts()}, \n{invalid_df[HR_STATUS].value_counts().index}"),
     HR_TRANSACTION_DATE: (lambda col: pandas.to_datetime(col, format=ISO8601_FORMAT, errors='coerce').notna(),
                           lambda
                               invalid_df: f"\n{invalid_df[HR_TRANSACTION_DATE].value_counts()}, \n{invalid_df[HR_TRANSACTION_DATE].value_counts().index}"),
-    HR_UNIT_EVALUATION: (lambda col: (col.str.match(EVALUATION_VALIDITY_PATTERN) == True),
+    HR_UNIT_EVALUATION: (lambda col: (col.isin(VALID_EVALUATION_STATUSES)),
                          lambda
                              invalid_df: f"\n{invalid_df[HR_UNIT_EVALUATION].value_counts()}, \n{invalid_df[HR_UNIT_EVALUATION].value_counts().index}")
 }
