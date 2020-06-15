@@ -180,6 +180,23 @@ if (nrow(wc_model_data_new) != 0 ) {
   write_csv(wc_model_data, "data/private/wc_model_data.csv")
 }
 
+# MRC DATA ============================================
+mrc_data_new <- "data/staging/City of Cape Town.xlsx"
+minio_to_file(mrc_data_new,
+              "covid",
+              minio_key,
+              minio_secret,
+              "EDGE",
+              minio_filename_override=mrc_data_new)
+
+mrc_data_dates <- read_xlsx(mrc_data_new, range = "K2:K54") %>% mutate(Week = as.Date(Week)) %>% rename(Week_Start = Week)
+mrc_ct_data <- read_xlsx(mrc_data_new, range = "K2:O54") %>% mutate(Week = as.Date(Week)) %>% rename(Week_Start = Week) 
+mrc_wc_data <- read_xlsx(mrc_data_new, range = "Q2:T54") %>% bind_cols(mrc_data_dates, .)
+mrc_sa_data <- read_xlsx(mrc_data_new, range = "V2:Y54") %>% bind_cols(mrc_data_dates, .)
+
+write_csv(mrc_ct_data, "data/private/mrc_ct_data.csv")
+write_csv(mrc_wc_data, "data/private/mrc_wc_data.csv")
+write_csv(mrc_sa_data, "data/private/mrc_sa_data.csv")
 
 # SEND DATA TO MINIO ==================================
 
