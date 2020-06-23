@@ -29,7 +29,7 @@ dag = DAG('covid-19-hr-data',
           catchup=False,
           default_args=default_args,
           schedule_interval=dag_interval,
-          concurrency=1)
+          concurrency=2)
 
 # env variables for inside the k8s pod
 k8s_run_env = {
@@ -92,6 +92,9 @@ hr_master_data_munge_operator = covid_19_data_task(HR_MASTER_MUNGE_TASK)
 
 HR_ORG_UNIT_MUNGE_TASK = 'hr-data-org-unit-munge'
 hr_data_org_unit_munge_operator = covid_19_data_task(HR_ORG_UNIT_MUNGE_TASK)
+
+OHS_FETCH_TASK = "ohs-cases-data"
+ohs_data_fetch_operator = covid_19_data_task(OHS_FETCH_TASK)
 
 # Dependencies
 hr_data_fetch_operator >> hr_data_munge_operator

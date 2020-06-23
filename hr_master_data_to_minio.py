@@ -4,12 +4,11 @@ import os
 import re
 import sys
 import tempfile
-import time
 
 import pandas
 from db_utils import minio_utils
-from exchangelib import DELEGATE, Account, Credentials, Configuration, NTLM, FileAttachment
 
+import exchange_utils
 import hr_data_to_minio
 
 SUBJECT_FILTER = 'CITY ORG UNIT MASTER DATA'
@@ -23,57 +22,7 @@ ESSENTIAL_STAFF_FILE_PATTERN = 'ess staff upload'
 ASSESSED_STAFF_FILE_PATTERN = 'all staff upload'
 
 ESS_FILENAME_PATH = "data/private/hr_data_ess_staff"
-ASS_FILENAME_PATH = "data/private/hr_data_assessed_staff" # hehe
-
-def setup_exchange_account(username, password):
-    logging.debug("Creating config for account with username '{}'".format(username))
-    credentials = Credentials(username=username, password=password)
-    config = Configuration(
-        server="webmail.capetown.gov.za",
-        credentials=credentials,
-        auth_type=NTLM
-    )
-
-    # Seems to help if you have a pause before trying to log in
-    time.sleep(1)
-
-    logging.debug("Logging into account")
-    account = Account(
-        primary_smtp_address="opm.data@capetown.gov.za",
-        config=config, autodiscover=False,
-        access_type=DELEGATE
-    )
-
-    return account
-
-
-def filter_account(account, subject_filter):
-    logging.debug("Filtering Inbox")
-
-    filtered_items = account.inbox.filter(subject__contains=subject_filter)
-
-    return filtered_items
-
-
-def get_attachment_file(filtered_items):
-    with tempfile.TemporaryDirectory() as tempdir:
-        logging.debug("Created temp dir '{}'".format(tempdir))
-        for item in filtered_items.order_by('-datetime_received')[:1]:
-            logging.debug(
-                "Received match: '{} {} {}''".format(item.subject, item.sender, item.datetime_received)
-            )
-            for attachment in item.attachments:
-                if isinstance(attachment, FileAttachment):
-                    logging.debug("Downloading '{}'".format(attachment.name))
-                    local_path = os.path.join(tempdir, attachment.name)
-
-                    with open(local_path, 'wb') as f, attachment.fp as fp:
-                        buffer = fp.read(1024)
-                        while buffer:
-                            f.write(buffer)
-                            buffer = fp.read(1024)
-
-                    yield local_path
+ASS_FILENAME_PATH = "data/private/hr_data_assessed_staff"  # hehe
 
 
 def convert_xls_to_csv(xls_path, csv_path):
@@ -113,8 +62,8 @@ if __name__ == "__main__":
 
     logging.info("Set[ting] up auth")
     # Exchange auth
-    account = setup_exchange_account(secrets["proxy"]["username"],
-                                     secrets["proxy"]["password"])
+    account = exchange_utils.setup_exchange_account(secrets["proxy"]["username"],
+                                                    secrets["proxy"]["password"])
     # Sharepoint auth
     sp_auth, city_proxy_string, city_proxy_dict = hr_data_to_minio.get_auth_objects(
         secrets["proxy"]["username"],
@@ -133,8 +82,8 @@ if __name__ == "__main__":
     for logger in exchangelib_loggers:
         logger.setLevel(logging.INFO)
 
-    filtered_items = filter_account(account, SUBJECT_FILTER)
-    for attachment_path in get_attachment_file(filtered_items):
+    filtered_items = exchange_utils.filter_account(account, SUBJECT_FILTER)
+    for attachment_path in exchange_utils.get_latest_attachment_file(filtered_items):
         logging.debug("Uploading '{}' to minio://covid/{}".format(attachment_path, RESTRICTED_PREFIX))
 
         # Just back up everything we get
