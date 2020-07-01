@@ -22,7 +22,7 @@ def convert_xls_to_csv(xls_path, csv_path):
     temp_df.columns = map(str.lower, temp_df.columns)
     temp_df.columns = temp_df.columns.str.replace(" ", "_")
 
-    temp_df.to_csv(csv_path, sep="~|~", index=False)
+    temp_df.to_csv(csv_path, sep="~", index=False)
 
 
 if __name__ == "__main__":
