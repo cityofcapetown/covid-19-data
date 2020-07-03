@@ -11,8 +11,12 @@ BUCKET = 'covid'
 CLASSIFICATION = minio_utils.DataClassification.EDGE
 HR_TRANSACTIONAL_FILENAME_PATH = "data/private/business_continuity_people_status.csv"
 HR_MASTER_FILENAME_PATH = "data/private/city_people.csv"
+HR_ORG_UNIT_MASTER_PATH = "data/private/city_org_unit_master_data.csv"
 
 HR_STAFFNUMBER = 'StaffNumber'
+HR_STAFF_ORG_UNIT = "Orgunit"
+HR_ORG_UNIT = "OrgUnit No"
+
 HR_TRANSACTION_DATE = 'Date'
 HR_TRANSACTION_EVALUATION = 'Evaluation'
 HR_LOCATION = "LocationWkt"
@@ -47,7 +51,7 @@ def get_data_df(filename, minio_access, minio_secret):
     return data_df
 
 
-def merge_df(hr_df, hr_master_df):
+def merge_df(hr_df, hr_master_df, hr_org_df):
     combined_df = hr_df.merge(
         hr_master_df,
         left_on=HR_STAFFNUMBER,
@@ -55,6 +59,21 @@ def merge_df(hr_df, hr_master_df):
         how='left',
         validate="many_to_one",
     )
+    logging.debug(f"combined_df.shape=\n{combined_df.shape}")
+    logging.debug(f"combined_df.head(5)=\n{combined_df.head(5)}")
+
+    merge_cols = [col for col in combined_df if col in hr_org_df.columns]
+    logging.debug(f"Dropping '{', '.join(merge_cols)}' because we're going to get them from org_df")
+    combined_df.drop(merge_cols, axis='columns', inplace=True)
+
+    combined_df = combined_df.merge(
+        hr_org_df,
+        left_on=HR_STAFF_ORG_UNIT,
+        right_on=HR_ORG_UNIT,
+        how='left',
+        validate="many_to_one",
+    )
+    logging.debug(f"combined_df.shape=\n{combined_df.shape}")
     logging.debug(f"combined_df.head(5)=\n{combined_df.head(5)}")
 
     return combined_df
@@ -68,6 +87,8 @@ def get_org_unit_df(combined_df):
 
     # Apparently what is needed to fill NaN columns
     filled_df = combined_df.copy()
+    logging.debug(f"filled_df.columns={filled_df.columns}")
+
     filled_df.loc[:, HR_ORG_UNIT_COLUMNS] = filled_df.loc[:, HR_ORG_UNIT_COLUMNS].fillna("N/A")
     logging.debug(f"filled_df.head(5)=\n{filled_df.head(5)}")
     logging.debug(f"filled_df.shape=\n{filled_df.shape}")
@@ -77,12 +98,12 @@ def get_org_unit_df(combined_df):
         # select the most common value in the evaluation col
         filled_df.groupby(groupby_cols, sort=False)
             .apply(
-                lambda df: pandas.DataFrame({
-                                HR_TRANSACTION_EVALUATION: df[HR_TRANSACTION_EVALUATION].mode(),
-                                HR_LOCATION: df[HR_LOCATION].mode(),
-                                **df[HR_CATEGORIES].value_counts().to_dict()
-                })
-            )
+            lambda df: pandas.DataFrame({
+                HR_TRANSACTION_EVALUATION: df[HR_TRANSACTION_EVALUATION].mode(),
+                HR_LOCATION: df[HR_LOCATION].mode(),
+                **df[HR_CATEGORIES].value_counts().to_dict()
+            })
+        )
             # getting back to a dataframe
             .reset_index()
             # cleaning up the new index that appears
@@ -104,7 +125,7 @@ def get_org_unit_df(combined_df):
     logging.debug(f"melted_df.Directorate.value_counts()=\n{melted_df.Directorate.value_counts()}")
     logging.debug(f"melted_df.Department.value_counts()=\n{melted_df.Department.value_counts()}")
     logging.debug(f"melted_df.Branch.value_counts()=\n{melted_df.Branch.value_counts()}")
-    logging.debug(f"melted_df.Section.value_counts()=\n{melted_df.Branch.value_counts()}")
+    logging.debug(f"melted_df.Section.value_counts()=\n{melted_df.Section.value_counts()}")
 
     return melted_df
 
@@ -130,11 +151,14 @@ if __name__ == "__main__":
     hr_master_df = get_data_df(HR_MASTER_FILENAME_PATH,
                                secrets["minio"]["edge"]["access"],
                                secrets["minio"]["edge"]["secret"])
+    hr_org_unit_master_df = get_data_df(HR_ORG_UNIT_MASTER_PATH,
+                                        secrets["minio"]["edge"]["access"],
+                                        secrets["minio"]["edge"]["secret"])
     logging.info("Fetch[ed] HR data")
 
-    logging.info("Merg[ing] Transactional and Master data")
-    merged_df = merge_df(hr_transactional_df, hr_master_df)
-    logging.info("Merg[ed] Transactional and Master data")
+    logging.info("Merg[ing] Transactional and Master HR data, as well as Org Unit data")
+    merged_df = merge_df(hr_transactional_df, hr_master_df, hr_org_unit_master_df)
+    logging.info("Merg[ed] Transactional and Master HR data, as well as Org Unit data")
 
     logging.info("Dedup[ing] HR form data")
     org_unit_df = get_org_unit_df(merged_df)
