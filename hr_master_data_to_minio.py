@@ -12,17 +12,15 @@ import exchange_utils
 import hr_data_to_minio
 
 SUBJECT_FILTER = 'CITY ORG UNIT MASTER DATA'
-FILENAMES = {"CITY EMPLOYEE MASTER DATA.xlsx", "CITY ORG UNIT MASTER DATA.xlsx"}
+FILENAMES = {"CITY ORG UNIT MASTER DATA.xlsx"}
 BUCKET = 'covid'
 STAGING_PREFIX = "data/staging/"
 RESTRICTED_PREFIX = "data/private/"
 
 MASTER_SHEET_LIST_NAME = 'Master Sheets'
-ESSENTIAL_STAFF_FILE_PATTERN = 'ess staff upload'
-ASSESSED_STAFF_FILE_PATTERN = 'all staff upload'
+MASTER_STAFF_FILE_PATTERN = 'staff uploaded detail'
 
-ESS_FILENAME_PATH = "data/private/hr_data_ess_staff"
-ASS_FILENAME_PATH = "data/private/hr_data_assessed_staff"  # hehe
+ALL_STAFF_FILENAME_PATH = "data/private/hr_data_all_staff"
 
 
 def convert_xls_to_csv(xls_path, csv_path):
@@ -32,6 +30,7 @@ def convert_xls_to_csv(xls_path, csv_path):
 
 def get_most_recent_sharepoint_item(site, file_name_pattern):
     file_list_dicts = site.List(MASTER_SHEET_LIST_NAME).GetListItems()
+
     file_list = [
         file_dict for file_dict in file_list_dicts
         if file_name_pattern in file_dict["Name"].lower()
@@ -123,8 +122,7 @@ if __name__ == "__main__":
         hr_data_to_minio.SP_SITE,
         sp_auth
     )
-    for filename_path, file_pattern in ((ESS_FILENAME_PATH, ESSENTIAL_STAFF_FILE_PATTERN),
-                                        (ASS_FILENAME_PATH, ASSESSED_STAFF_FILE_PATTERN)):
+    for filename_path, file_pattern in ((ALL_STAFF_FILENAME_PATH, MASTER_STAFF_FILE_PATTERN),):
         logging.debug(f"Fetching {filename_path}")
         staff_dict = get_most_recent_sharepoint_item(sp_site, file_pattern)
         for essential_staff_df in hr_data_to_minio.get_excel_list_dfs([staff_dict],

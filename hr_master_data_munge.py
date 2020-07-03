@@ -11,22 +11,24 @@ BUCKET = 'covid'
 CLASSIFICATION = minio_utils.DataClassification.EDGE
 HR_FORM_FILENAME_PATH = "data/private/hr_data_complete.csv"
 
-HR_MASTER_INGESTION_FILENAME_PATH = "data/private/city_employee_master_data.csv"
+HR_MASTER_INGESTION_FILENAME_PATH = "data/private/hr_data_all_staff.csv"
 HR_MASTER_LOCATION_FILENAME_PATH = "data/private/city_people_locations.csv"
-HR_MASTER_ESS_FILENAME_PATH = "data/private/hr_data_ess_staff.csv"
-HR_MASTER_ASS_FILENAME_PATH = "data/private/hr_data_assessed_staff.csv"  # hehe
 
 HR_MASTER_STAFFNUMBER = 'Persno'
 HR_EXPECTED_STAFFNUMBER = 'StaffNumber'
 
 ESSENTIAL_COL = "EssentialStaff"
-APPROVER_COLUMNS = ["Persno",
-                    "Approver Staff No", "Approver Name", ]
+ESSENTIAL_PERMIT_COL = "Essential Permit Issued"
 ASSESSED_COL = "AssessedStaff"
 HR_MASTER_FILENAME_PATH = "data/private/city_people"
 
-DEPARTMENT_COL = "Department"
-OVERRIDE_DEPTS = {"solid waste management", "water and sanitation services"}
+DIRECTORATE_COL = 'Directorate'
+DEPARTMENT_COL = 'Department'
+NOT_ASSESSED_DIRECTORATES = {
+    'ENERGY AND CLIMATE CHANGE',
+    "SAFETY AND SECURITY",
+    'COMMUNITY SERVICES and HEALTH',
+}
 
 
 def get_data_df(filename, minio_access, minio_secret):
@@ -63,51 +65,18 @@ def merge_in_location_data(master_df, location_df):
     return employee_master_with_loc_df
 
 
-def merge_in_attribute_data(master_df, ess_df, ass_df):
-    # Marking essential and assessed staff
-    employee_master_with_ess_and_ass_df = master_df.copy().assign(
-        **{ESSENTIAL_COL: master_df[HR_MASTER_STAFFNUMBER].isin(ess_df[HR_MASTER_STAFFNUMBER])},
-        **{ASSESSED_COL: master_df[HR_MASTER_STAFFNUMBER].isin(ass_df[HR_MASTER_STAFFNUMBER])}
-    )
-
-    # Setting assessed flag using override departments list
-    employee_master_with_ess_and_ass_df.loc[
-        employee_master_with_ess_and_ass_df.query(
-            f"{DEPARTMENT_COL}.str.lower().isin(@OVERRIDE_DEPTS)"
-        ).index,
-        ASSESSED_COL
-    ] = True
-
+def add_boolean_columns(master_df):
+    master_df[ASSESSED_COL] = ~master_df[DIRECTORATE_COL].isin(NOT_ASSESSED_DIRECTORATES)
     logging.debug(
-        f"employee_master_with_ess_and_ass_df[DEPARTMENT_COL].value_counts()=\n"
-        f"{employee_master_with_ess_and_ass_df[DEPARTMENT_COL].value_counts()}"
+        f"master_df['{ASSESSED_COL}'].sum()/master_df.shape[0]={master_df[ASSESSED_COL].sum()}/{master_df.shape[0]}"
     )
 
+    master_df[ESSENTIAL_COL] = master_df["Essential Permit Issued"] == 'YES'
     logging.debug(
-        f"employee_master_with_ess_and_ass_df['{ESSENTIAL_COL}'].sum()/"
-        f"employee_master_with_ess_and_ass_df.shape[0]="
-        f"{employee_master_with_ess_and_ass_df[ESSENTIAL_COL].sum()}/"
-        f"{employee_master_with_ess_and_ass_df.shape[0]}"
-    )
-    logging.debug(
-        f"employee_master_with_ess_and_ass_df['{ASSESSED_COL}'].sum()/"
-        f"employee_master_with_ess_and_ass_df.shape[0]="
-        f"{employee_master_with_ess_and_ass_df[ASSESSED_COL].sum()}/"
-        f"{employee_master_with_ess_and_ass_df.shape[0]}"
+        f"master_df['{ESSENTIAL_COL}'].sum()/master_df.shape[0]={master_df[ESSENTIAL_COL].sum()}/{master_df.shape[0]}"
     )
 
-    # Joining in assessed attributes
-    employee_master_with_ass_attributes_df = employee_master_with_ess_and_ass_df.query(
-        f"{ASSESSED_COL}"
-    ).merge(
-        ass_df[APPROVER_COLUMNS],
-        left_on=HR_MASTER_STAFFNUMBER,
-        right_on=HR_MASTER_STAFFNUMBER,
-        how='left',
-        validate="one_to_one"
-    )
-
-    return employee_master_with_ass_attributes_df
+    return master_df
 
 
 def validate_hr_data(master_df):
@@ -138,20 +107,19 @@ if __name__ == "__main__":
     hr_master_location_df = get_data_df(HR_MASTER_LOCATION_FILENAME_PATH,
                                         secrets["minio"]["edge"]["access"],
                                         secrets["minio"]["edge"]["secret"])
-    hr_master_ess_df = get_data_df(HR_MASTER_ESS_FILENAME_PATH,
-                                   secrets["minio"]["edge"]["access"],
-                                   secrets["minio"]["edge"]["secret"])
-    hr_master_ass_df = get_data_df(HR_MASTER_ASS_FILENAME_PATH,
-                                   secrets["minio"]["edge"]["access"],
-                                   secrets["minio"]["edge"]["secret"])
     logging.info("Fetch[ed] HR master data")
 
+    logging.debug(
+        f"hr_master_ingestion_df[DEPARTMENT_COL].value_counts()=\n"
+        f"{hr_master_ingestion_df[DEPARTMENT_COL].value_counts()}"
+    )
+
     logging.info("Merg[ing] in HR attribute data")
-    hr_master_temp_df = merge_in_attribute_data(hr_master_ingestion_df, hr_master_ess_df, hr_master_ass_df)
+    hr_master_df = add_boolean_columns(hr_master_ingestion_df)
     logging.info("Merg[ed] in HR attribute data")
 
     logging.info("Merg[ing] in location data")
-    hr_master_df = merge_in_location_data(hr_master_temp_df, hr_master_location_df)
+    hr_master_df = merge_in_location_data(hr_master_df, hr_master_location_df)
     logging.info("Merg[ed] in HR Master data")
 
     logging.info("Validat[ing] HR master data")
