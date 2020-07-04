@@ -37,6 +37,10 @@ XML_FIELD_NAMES = [
 ISO8601_FORMAT = "%Y-%m-%d %H:%M:%S"
 
 SP_BATCH_LIST_NAMES = ['SWM Batch Submissions', 'WS Batch Submissions']
+BATCH_FILE_PATTERN_FILTER = {
+    'SWM Batch Submissions': "new swm staff capacity",
+    'WS Batch Submissions': "ws staffing capacity report"
+}
 BATCH_COLUMN_MAP = {
     'Date': 'Date',
     'Evaluation': 'Evaluation',
@@ -176,6 +180,18 @@ def get_excel_list_dfs(site_list, auth, proxy_dict, minio_access, minio_secret):
                 continue
 
 
+def filter_site_list(site_list, file_name_pattern):
+    file_list_dicts = site_list.GetListItems()
+
+    file_list = (
+        file_dict for file_dict in file_list_dicts
+        if file_name_pattern in file_dict["Name"].lower()
+    )
+
+    for file_dict in file_list:
+        yield file_dict
+
+
 def get_combined_list_df(site, auth, proxy_dict, minio_access, minio_secret):
     # Get XML files
     xml_list_df = get_xml_list_dfs(site, SP_XML_LIST_NAME)
@@ -190,7 +206,8 @@ def get_combined_list_df(site, auth, proxy_dict, minio_access, minio_secret):
     batch_list_dfs = (
         batch_df[BATCH_COLUMN_MAP.keys()].rename(BATCH_COLUMN_MAP, axis='columns')
         for batch_list in SP_BATCH_LIST_NAMES
-        for batch_df in get_excel_list_dfs(site.List(batch_list).GetListItems(),
+        for batch_df in get_excel_list_dfs(filter_site_list(site.List(batch_list),
+                                                            BATCH_FILE_PATTERN_FILTER[batch_list]),
                                            auth, proxy_dict, minio_access, minio_secret)
     )
 
