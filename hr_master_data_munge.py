@@ -17,8 +17,6 @@ HR_MASTER_LOCATION_FILENAME_PATH = "data/private/city_people_locations.csv"
 HR_MASTER_STAFFNUMBER = 'Persno'
 HR_EXPECTED_STAFFNUMBER = 'StaffNumber'
 
-ESSENTIAL_COL = "EssentialStaff"
-ESSENTIAL_PERMIT_COL = "Essential Permit Issued"
 ASSESSED_COL = "AssessedStaff"
 HR_MASTER_FILENAME_PATH = "data/private/city_people"
 
@@ -69,11 +67,6 @@ def add_boolean_columns(master_df):
     master_df[ASSESSED_COL] = ~master_df[DIRECTORATE_COL].isin(NOT_ASSESSED_DIRECTORATES)
     logging.debug(
         f"master_df['{ASSESSED_COL}'].sum()/master_df.shape[0]={master_df[ASSESSED_COL].sum()}/{master_df.shape[0]}"
-    )
-
-    master_df[ESSENTIAL_COL] = master_df["Essential Permit Issued"] == 'YES'
-    logging.debug(
-        f"master_df['{ESSENTIAL_COL}'].sum()/master_df.shape[0]={master_df[ESSENTIAL_COL].sum()}/{master_df.shape[0]}"
     )
 
     return master_df
