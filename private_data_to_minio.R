@@ -144,6 +144,7 @@ minio_to_file(wc_model_data_new,
               minio_filename_override=wc_model_data_new)
 wc_model_data_new <- read_xlsx(wc_model_data_new)
 wc_model_data_new <- wc_model_data_new %>% 
+  mutate(TimeInterval = parse_date_time(TimeInterval, orders = "ymd")) %>%
   mutate(key = paste(TimeInterval, 
                      NewInfections, 
                      NewGeneralAdmissions, 
@@ -210,3 +211,4 @@ for (filename in list.files(private_data_dir)) {
                 "EDGE",
                 filename_prefix_override = private_data_dir)
 }  
+
