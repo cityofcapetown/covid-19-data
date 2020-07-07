@@ -1,7 +1,6 @@
 import json
 import logging
 import os
-import re
 import sys
 import tempfile
 
@@ -9,41 +8,21 @@ import pandas
 from db_utils import minio_utils
 
 import exchange_utils
-import hr_data_to_minio
 
-SUBJECT_FILTER = 'CITY ORG UNIT MASTER DATA'
-FILENAMES = {"CITY ORG UNIT MASTER DATA.xlsx"}
+SUBJECT_FILTER = 'OHS Data'
+FILENAMES = "ohs_data.xlsx"
 BUCKET = 'covid'
-STAGING_PREFIX = "data/staging/"
+STAGING_PREFIX = "data/staging/ohs_backup/"
 RESTRICTED_PREFIX = "data/private/"
-
-MASTER_SHEET_LIST_NAME = 'Master Sheets'
-MASTER_STAFF_FILE_PATTERN = 'staff uploaded detail'
-
-ALL_STAFF_FILENAME_PATH = "data/private/hr_data_all_staff"
 
 
 def convert_xls_to_csv(xls_path, csv_path):
     temp_df = pandas.read_excel(xls_path)
-    temp_df.to_csv(csv_path, index=False)
 
+    temp_df.columns = map(str.lower, temp_df.columns)
+    temp_df.columns = temp_df.columns.str.replace(" ", "_")
 
-def get_most_recent_sharepoint_item(site, file_name_pattern):
-    file_list_dicts = site.List(MASTER_SHEET_LIST_NAME).GetListItems()
-
-    file_list = [
-        file_dict for file_dict in file_list_dicts
-        if file_name_pattern in file_dict["Name"].lower()
-    ]
-    logging.debug(f"Found {len(file_list)} items in '{MASTER_SHEET_LIST_NAME}' list")
-
-    created_regex = re.compile(hr_data_to_minio.SP_REGEX)
-    file_list.sort(
-        key=lambda file_dict: created_regex.search(file_dict["Created"]).group(1)
-    )
-    most_recent = file_list[-1]
-
-    return most_recent
+    temp_df.to_csv(csv_path, sep="~", index=False)
 
 
 if __name__ == "__main__":
@@ -63,15 +42,8 @@ if __name__ == "__main__":
     # Exchange auth
     account = exchange_utils.setup_exchange_account(secrets["proxy"]["username"],
                                                     secrets["proxy"]["password"])
-    # Sharepoint auth
-    sp_auth, city_proxy_string, city_proxy_dict = hr_data_to_minio.get_auth_objects(
-        secrets["proxy"]["username"],
-        secrets["proxy"]["password"]
-    )
-    hr_data_to_minio.set_env_proxy(city_proxy_string)
-    logging.info("Set[up] auth")
 
-    logging.info("Gett[ing] Master Data from Emails")
+    logging.info("Gett[ing] OHS Data from Email")
     # Turning down various exchange loggers - they're abit noisy
     exchangelib_loggers = [
         logging.getLogger(name)
@@ -114,25 +86,4 @@ if __name__ == "__main__":
                     data_classification=minio_utils.DataClassification.EDGE,
                 )
 
-    logging.info("G[ot] Master Data from Emails")
-
-    logging.info("Gett[ing] Master Data from Sharepoint")
-    sp_site = hr_data_to_minio.get_sp_site(
-        hr_data_to_minio.SP_DOMAIN,
-        hr_data_to_minio.SP_SITE,
-        sp_auth
-    )
-    for filename_path, file_pattern in ((ALL_STAFF_FILENAME_PATH, MASTER_STAFF_FILE_PATTERN),):
-        logging.debug(f"Fetching {filename_path}")
-        staff_dict = get_most_recent_sharepoint_item(sp_site, file_pattern)
-        for essential_staff_df in hr_data_to_minio.get_excel_list_dfs([staff_dict],
-                                                                      sp_auth, city_proxy_dict,
-                                                                      secrets["minio"]["edge"]["access"],
-                                                                      secrets["minio"]["edge"]["secret"]):
-            minio_utils.dataframe_to_minio(essential_staff_df, BUCKET,
-                                           secrets["minio"]["edge"]["access"], secrets["minio"]["edge"]["secret"],
-                                           minio_utils.DataClassification.EDGE,
-                                           filename_prefix_override=filename_path,
-                                           data_versioning=False,
-                                           file_format="csv",
-                                           index=False)
+    logging.info("G[ot] OHS Data from Emails")
