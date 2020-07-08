@@ -21,6 +21,7 @@ def convert_xls_to_csv(xls_path, csv_path):
 
     temp_df.columns = map(str.lower, temp_df.columns)
     temp_df.columns = temp_df.columns.str.replace(" ", "_")
+    temp_df.loc[:, "cct_areas_visited"] = temp_df["cct_areas_visited"].replace('\n',' ', regex=True)
 
     temp_df.to_csv(csv_path, sep="~", index=False)
 
