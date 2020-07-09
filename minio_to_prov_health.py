@@ -1,4 +1,4 @@
-import glob
+import fnmatch
 import json
 import os
 import pathlib
@@ -10,27 +10,54 @@ from db_utils import minio_utils
 import paramiko
 import prov_health_data_to_minio
 
-PUBLIC_WIDGETS_PREFIX = "widgets/public"
-CITY_MAP_WIDGETS_PREFIX = "widgets/private/city_map_"
-PRIVATE_WIDGETS_LIBDIR_PREFIX = "widgets/private/libdir"
+VULNERABILITY_VIEWER_SOURCE = "*-hotspots.html"
+DASHBOARD_ASSETS = "assets/*"
+PUBLIC_WIDGETS_PREFIX = "widgets/public/*"
+PRIVATE_WIDGETS_LIBDIR_PREFIX = "widgets/private/libdir/*"
+PRIVATE_WIDGETS_JS_PREFIX = "widgets/private/*.js"
+PRIVATE_WIDGETS_CSS_PREFIX = "widgets/private/*.css"
+CITY_MAP_WIDGETS_PREFIX = "widgets/private/case_count_maps/*"
+STATS_TABLE_WIDGETS_PREFIX = "widgets/private/subdistrict_stats_table_widgets/*"
+CT_EPI_WIDGETS = "widgets/private/ct_*"
+CCT_EPI_WIDGETS = "widgets/private/cct_*"
+MODEL_WIDGETS = "widgets/private/wc_model_*"
+LATEST_VALUES = "widgets/private/latest_values.json"
 
-SHARE_PATTERNS = (
+VV_SHARE_PATTERNS = (
+    VULNERABILITY_VIEWER_SOURCE,
+    DASHBOARD_ASSETS,
     PUBLIC_WIDGETS_PREFIX,
+    PRIVATE_WIDGETS_LIBDIR_PREFIX,
+    PRIVATE_WIDGETS_JS_PREFIX,
+    PRIVATE_WIDGETS_CSS_PREFIX,
     CITY_MAP_WIDGETS_PREFIX,
-    PRIVATE_WIDGETS_LIBDIR_PREFIX
+    STATS_TABLE_WIDGETS_PREFIX,
+    CT_EPI_WIDGETS,
+    CCT_EPI_WIDGETS,
+    MODEL_WIDGETS,
+    LATEST_VALUES
+)
+CASE_MAPS_SHARE_PATTERN = (
+    CITY_MAP_WIDGETS_PREFIX,
 )
 
 FTP_SYNC_DIR_NAME = 'COCT_WCGH'
+SHARE_CONFIG = (
+    # Dest Dir, Patterns to match
+    (os.path.join(FTP_SYNC_DIR_NAME, "vulnerability_viewer"), VV_SHARE_PATTERNS),
+    (os.path.join(FTP_SYNC_DIR_NAME, "case_maps"), CASE_MAPS_SHARE_PATTERN),
+)
 
 
-def pull_down_covid_bucket_files(minio_access, minio_secret, prefix):
+def pull_down_covid_bucket_files(minio_access, minio_secret, patterns):
     with tempfile.TemporaryDirectory() as tempdir:
         logging.debug("Sync[ing] data from COVID bucket")
 
-        # God, this is ugly - I really just need to add the prefix option to minio_utils
-        def _list_bucket_objects(minio_client, minio_bucket, prefix=prefix):
+        def _list_bucket_objects(minio_client, minio_bucket, prefix=None):
             object_set = set([obj.object_name
-                              for obj in minio_client.list_objects_v2(minio_bucket, prefix=prefix, recursive=True)])
+                              for obj in minio_client.list_objects_v2(minio_bucket, recursive=True)
+                              if any(map(lambda p: fnmatch.fnmatch(obj.object_name, p), patterns))])
+            logging.debug(f"object_set={', '.join(object_set)}")
 
             return object_set
 
@@ -91,17 +118,17 @@ if __name__ == "__main__":
     # Getting SFTP client
     logging.info("Auth[ing] with FTP server")
     sftp_client = prov_health_data_to_minio.get_sftp_client(
-       secrets["proxy"]["username"], secrets["proxy"]["password"],
-       secrets["ftp"]["wcgh"]["username"], secrets["ftp"]["wcgh"]["password"],
+        secrets["proxy"]["username"], secrets["proxy"]["password"],
+        secrets["ftp"]["wcgh"]["username"], secrets["ftp"]["wcgh"]["password"],
     )
     logging.info("Auth[ed] with FTP server")
 
-    for pattern in SHARE_PATTERNS:
-        logging.info(f"looking for matches for '{pattern}'")
+    for dest_dir, patterns in SHARE_CONFIG:
+        logging.info(f"looking for matches for '{dest_dir}'")
         for local_path, remote_path in pull_down_covid_bucket_files(secrets["minio"]["edge"]["access"],
                                                                     secrets["minio"]["edge"]["secret"],
-                                                                    pattern):
-            remote_path = pathlib.Path(os.path.join(FTP_SYNC_DIR_NAME, remote_path))
+                                                                    patterns):
+            remote_path = pathlib.Path(os.path.join(dest_dir, remote_path))
             logging.debug(f"{local_path} -> {remote_path}")
 
             # Creating the dir, if it doesn't exist
@@ -115,6 +142,3 @@ if __name__ == "__main__":
                 sftp_client.put(local_path, str(remote_path))
             else:
                 logging.warning(f"Not updating '{remote_path}' - sizes are the same")
-
-
-
