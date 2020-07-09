@@ -37,6 +37,10 @@ VV_SHARE_PATTERNS = (
     MODEL_WIDGETS,
     LATEST_VALUES
 )
+VV_EXCLUDE_LIST = (
+    "cpop_gt55.geojson",
+)
+
 CASE_MAPS_SHARE_PATTERN = (
     CITY_MAP_WIDGETS_PREFIX,
 )
@@ -44,19 +48,22 @@ CASE_MAPS_SHARE_PATTERN = (
 FTP_SYNC_DIR_NAME = 'COCT_WCGH'
 SHARE_CONFIG = (
     # Dest Dir, Patterns to match
-    (os.path.join(FTP_SYNC_DIR_NAME, "vulnerability_viewer"), VV_SHARE_PATTERNS),
-    (os.path.join(FTP_SYNC_DIR_NAME, "case_maps"), CASE_MAPS_SHARE_PATTERN),
+    (os.path.join(FTP_SYNC_DIR_NAME, "vulnerability_viewer"), VV_SHARE_PATTERNS, VV_EXCLUDE_LIST),
+    (os.path.join(FTP_SYNC_DIR_NAME, "case_maps"), CASE_MAPS_SHARE_PATTERN, []),
 )
 
 
-def pull_down_covid_bucket_files(minio_access, minio_secret, patterns):
+def pull_down_covid_bucket_files(minio_access, minio_secret, patterns, exclude_patterns):
     with tempfile.TemporaryDirectory() as tempdir:
         logging.debug("Sync[ing] data from COVID bucket")
 
         def _list_bucket_objects(minio_client, minio_bucket, prefix=None):
             object_set = set([obj.object_name
                               for obj in minio_client.list_objects_v2(minio_bucket, recursive=True)
-                              if any(map(lambda p: fnmatch.fnmatch(obj.object_name, p), patterns))])
+                              if (
+                                      any(map(lambda p: fnmatch.fnmatch(obj.object_name, p), patterns)) and not
+                                      any(map(lambda p: fnmatch.fnmatch(obj.object_name, p), exclude_patterns))
+                              )])
             logging.debug(f"object_set={', '.join(object_set)}")
 
             return object_set
@@ -123,11 +130,11 @@ if __name__ == "__main__":
     )
     logging.info("Auth[ed] with FTP server")
 
-    for dest_dir, patterns in SHARE_CONFIG:
+    for dest_dir, patterns, exclude_patterns in SHARE_CONFIG:
         logging.info(f"looking for matches for '{dest_dir}'")
         for local_path, remote_path in pull_down_covid_bucket_files(secrets["minio"]["edge"]["access"],
                                                                     secrets["minio"]["edge"]["secret"],
-                                                                    patterns):
+                                                                    patterns, exclude_patterns):
             remote_path = pathlib.Path(os.path.join(dest_dir, remote_path))
             logging.debug(f"{local_path} -> {remote_path}")
 
