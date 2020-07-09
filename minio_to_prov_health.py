@@ -49,7 +49,7 @@ FTP_SYNC_DIR_NAME = 'COCT_WCGH'
 SHARE_CONFIG = (
     # Dest Dir, Patterns to match
     (os.path.join(FTP_SYNC_DIR_NAME, "vulnerability_viewer"), VV_SHARE_PATTERNS, VV_EXCLUDE_LIST),
-    (os.path.join(FTP_SYNC_DIR_NAME, "case_maps"), CASE_MAPS_SHARE_PATTERN, []),
+    (os.path.join(FTP_SYNC_DIR_NAME, "case_maps"), CASE_MAPS_SHARE_PATTERN, VV_EXCLUDE_LIST),
 )
 
 
