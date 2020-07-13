@@ -135,6 +135,8 @@ write_csv(ct_all_cases, "data/private/ct_all_cases.csv")
 
 
 # WC_model_data ---------------------------
+
+# Provincial
 wc_model_data_new <- "data/staging/wc_covid_scenarios.xlsx"
 minio_to_file(wc_model_data_new,
               "covid",
@@ -181,6 +183,54 @@ if (nrow(wc_model_data_new) != 0 ) {
   write_csv(wc_model_data, "data/private/wc_model_data.csv")
 }
 
+# City level
+ct_model_data_new <- "data/staging/ct_covid_scenarios.xlsx"
+minio_to_file(ct_model_data_new,
+              "covid",
+              minio_key,
+              minio_secret,
+              "EDGE",
+              minio_filename_override=ct_model_data_new)
+
+ct_model_data_new <- read_xlsx(ct_model_data_new)
+ct_model_data_new <- ct_model_data_new %>% 
+  mutate(TimeInterval = parse_date_time(TimeInterval, orders = "ymd")) %>%
+  mutate(key = paste(TimeInterval, 
+                     NewInfections, 
+                     NewGeneralAdmissions, 
+                     NewICUAdmissions, 
+                     GeneralBedNeed, 
+                     ICUBedNeed, 
+                     NewDeaths, 
+                     Scenario, sep = "|")) 
+
+ct_model_data_old <- "data/private/ct_model_data.csv"
+minio_to_file(ct_model_data_old,
+              "covid",
+              minio_key,
+              minio_secret,
+              "EDGE",
+              minio_filename_override=ct_model_data_old)
+ct_model_data_old <- read_csv(ct_model_data_old)
+ct_model_data_old <- ct_model_data_old %>% 
+  mutate(key = paste(TimeInterval, 
+                     NewInfections, 
+                     NewGeneralAdmissions, 
+                     NewICUAdmissions, 
+                     GeneralBedNeed, 
+                     ICUBedNeed, 
+                     NewDeaths, 
+                     Scenario, sep = "|")) 
+
+ct_model_data_new <- ct_model_data_new %>% filter(!(key %in% ct_model_data_old$key))
+if (nrow(ct_model_data_new) != 0 ) {
+  ct_model_data_new <- ct_model_data_new %>% mutate(ForecastDate = Sys.time()) %>% dplyr::select(ForecastDate, everything(), -key)
+  ct_model_data_old <- ct_model_data_old %>%dplyr::select(-key)
+  
+  ct_model_data <- bind_rows(ct_model_data_old, ct_model_data_new)
+  write_csv(ct_model_data, "data/private/ct_model_data.csv")
+}
+
 # MRC DATA ============================================
 mrc_data_new <- "data/staging/City of Cape Town.xlsx"
 minio_to_file(mrc_data_new,
@@ -211,4 +261,5 @@ for (filename in list.files(private_data_dir)) {
                 "EDGE",
                 filename_prefix_override = private_data_dir)
 }  
+
 
