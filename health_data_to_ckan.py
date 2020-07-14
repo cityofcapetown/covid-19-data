@@ -20,7 +20,8 @@ DATASET_MAP = (
     # ((CKAN dataset name, CKAN resource name), Minio filename)
     (("western-cape-case-data", "Western Cape Case Data"), "wc_all_cases.csv"),
     (("cape-town-case-data", "Cape Town Case Data"), "ct_all_cases.csv"),
-    (("western-cape-model-data", "Western Cape Model Data"), "wc_model_data.csv")
+    (("western-cape-model-data", "Western Cape Model Data"), "wc_model_data.csv"),
+    (("cape-town-model-data", "Cape Town Model Data"), "ct_model_data.csv"),
 )
 
 CHECKSUM_FIELD = "checksum"
