@@ -103,6 +103,10 @@ if __name__ == "__main__":
     logging.info("Fetch[ed] HR master data")
 
     logging.debug(
+        f"hr_master_ingestion_df[DIRECTORATE_COL].value_counts().iloc[:15]=\n"
+        f"{hr_master_ingestion_df[DIRECTORATE_COL].value_counts().iloc[:15]}"
+    )
+    logging.debug(
         f"hr_master_ingestion_df[DEPARTMENT_COL].value_counts()=\n"
         f"{hr_master_ingestion_df[DEPARTMENT_COL].value_counts()}"
     )
