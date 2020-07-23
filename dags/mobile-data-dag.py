@@ -24,7 +24,7 @@ startup_cmd = (
 )
 
 dag_interval = "@daily"
-dag = DAG('covid-19-mobile-data-dag',
+dag = DAG('covid-19-mobile-data',
           start_date=DAG_STARTDATE,
           catchup=False,
           default_args=default_args,
@@ -79,4 +79,10 @@ def covid_19_data_task(task_name, task_kwargs={}):
 
 # Defining tasks
 VODACOM_MUNGE_TASK = 'vodacom-data-munge'
-vodacom_data_fetch_operator = covid_19_data_task(VODACOM_MUNGE_TASK)
+vodacom_data_munge_operator = covid_19_data_task(VODACOM_MUNGE_TASK)
+
+DATE_MUNGE_TASK = 'mobile-date-data-munge'
+mobile_date_data_munge_operator = covid_19_data_task(VODACOM_MUNGE_TASK)
+
+# Dependencies
+vodacom_data_munge_operator >> mobile_date_data_munge_operator
