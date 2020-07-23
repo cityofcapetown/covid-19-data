@@ -82,7 +82,7 @@ VODACOM_MUNGE_TASK = 'vodacom-data-munge'
 vodacom_data_munge_operator = covid_19_data_task(VODACOM_MUNGE_TASK)
 
 DATE_MUNGE_TASK = 'mobile-date-data-munge'
-mobile_date_data_munge_operator = covid_19_data_task(VODACOM_MUNGE_TASK)
+mobile_date_data_munge_operator = covid_19_data_task(DATE_MUNGE_TASK)
 
 # Dependencies
 vodacom_data_munge_operator >> mobile_date_data_munge_operator
