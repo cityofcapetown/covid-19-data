@@ -135,5 +135,3 @@ if __name__ == "__main__":
                                    data_versioning=False,
                                    file_format="csv")
     logging.info("Wrot[e] data to Minio")
-
-
