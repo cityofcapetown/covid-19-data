@@ -12,7 +12,7 @@ import pandas
 BUCKET = 'covid'
 CLASSIFICATION = minio_utils.DataClassification.EDGE
 VODACOM_HOURLY_METRIC_PREFIX = "data/staging/vodacom/hourly-metrics/"
-VODACOM_HOURLY_METRIC_FILE_TEMPLATE = "{year}{month}{day}_hourly_metrics.csv"
+VODACOM_HOURLY_METRIC_FILE_TEMPLATE = "{year:04d}{month:02d}{day:02d}_hourly_metrics.csv"
 
 VODACOM_CT_POLYGONS = "data/private/ct_vodacom_polygons.geojson"
 POLYGON_ID_COL = "id"
@@ -42,7 +42,7 @@ def get_hourly_metric_file(date, minio_access, minio_secret):
     with tempfile.NamedTemporaryFile("r") as temp_file:
         minio_utils.minio_to_file(
             filename=temp_file.name,
-            minio_filename_override=f"{VODACOM_HOURLY_METRIC_PREFIX}/{hm_filename}",
+            minio_filename_override=f"{VODACOM_HOURLY_METRIC_PREFIX}{hm_filename}",
             minio_bucket=BUCKET,
             minio_key=minio_access,
             minio_secret=minio_secret,
@@ -50,7 +50,7 @@ def get_hourly_metric_file(date, minio_access, minio_secret):
         )
         hm_df = pandas.read_csv(temp_file.name)
 
-    yield hm_df
+    return hm_df
 
 
 def create_combined_hourly_metric_dataset(minio_access, minio_secret):
@@ -67,7 +67,10 @@ def create_combined_hourly_metric_dataset(minio_access, minio_secret):
 
     combined_df.drop([START_DATE_COL, START_HOUR_COL], axis='columns', inplace=True)
 
-    return combined_df
+    logging.debug(f"combined_df.shape={combined_df.shape}")
+    logging.debug(f"combined_df.head(5)=\n{combined_df.head(5)}")
+
+    return combined_df[[TIMESTAMP_COL, HOURLY_METRIC_POLYGON_ID, UNIQUE_COUNT_COL]]
 
 
 def get_minio_gdf(bucket_name, bucket_filename, minio_access, minio_secret):
@@ -117,18 +120,18 @@ if __name__ == "__main__":
     logging.info("Filter[ed] down to Cape Town")
 
     logging.info("Writ[ing] data to Minio")
-    minio_utils.dataframe_to_minio(combined_metric_df, BUCKET,
-                                   secrets["minio"]["edge"]["access"],
-                                   secrets["minio"]["edge"]["secret"],
-                                   minio_utils.DataClassification.EDGE,
-                                   filename_prefix_override=ALL_COMBINED_HOURLY_METRICS,
-                                   data_versioning=False,
-                                   file_format="csv")
     minio_utils.dataframe_to_minio(ct_metric_df, BUCKET,
                                    secrets["minio"]["edge"]["access"],
                                    secrets["minio"]["edge"]["secret"],
                                    minio_utils.DataClassification.EDGE,
                                    filename_prefix_override=CT_COMBINED_HOURLY_METRICS,
+                                   data_versioning=False,
+                                   file_format="csv")
+    minio_utils.dataframe_to_minio(combined_metric_df, BUCKET,
+                                   secrets["minio"]["edge"]["access"],
+                                   secrets["minio"]["edge"]["secret"],
+                                   minio_utils.DataClassification.EDGE,
+                                   filename_prefix_override=ALL_COMBINED_HOURLY_METRICS,
                                    data_versioning=False,
                                    file_format="csv")
     logging.info("Wrot[e] data to Minio")
