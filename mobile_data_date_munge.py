@@ -5,15 +5,11 @@ import sys
 import tempfile
 
 from db_utils import minio_utils
-import geopandas
-import numpy
 import pandas
 
 BUCKET = 'covid'
 CLASSIFICATION = minio_utils.DataClassification.EDGE
 CT_COMBINED_HOURLY_METRICS = "data/private/ct_mobile_device_counts.csv"
-
-POLYGON_ID_COL = "id"
 
 TIMESTAMP_COL = "timestamp"
 HOURLY_METRIC_POLYGON_ID = "polygon_id"
@@ -41,13 +37,15 @@ def get_combined_metric_file(minio_access, minio_secret):
             data_classification=CLASSIFICATION,
         )
         hm_df = pandas.read_csv(temp_file.name)
+        hm_df[TIMESTAMP_COL] = pandas.to_datetime(hm_df[TIMESTAMP_COL])
 
     return hm_df
 
 
 def calculate_uptime_and_downtime(combined_df):
     logging.debug("Resampl[ing] Data by day, into uptime and downtime metrics...")
-    combined_df.set_index([POLYGON_ID_COL, TIMESTAMP_COL], inplace=True)
+    combined_df.set_index([HOURLY_METRIC_POLYGON_ID, TIMESTAMP_COL], inplace=True)
+
     tidy_df = combined_df[UNIQUE_COUNT_COL].groupby(HOURLY_METRIC_POLYGON_ID, sort=False).apply(
         lambda groupby_df: (
             groupby_df.resample("1D", level=TIMESTAMP_COL).apply(
@@ -65,6 +63,7 @@ def calculate_uptime_and_downtime(combined_df):
             )
         )
     ).to_frame()
+    logging.debug(f"tidy_df=\n{tidy_df}")
     logging.debug("...Resampl[ed] Data by day, into uptime and downtime metrics")
 
     return tidy_df
@@ -74,9 +73,10 @@ def pivot_data(tidy_df):
     logging.debug("Pivot[ing] data...")
 
     final_index_name = f"level_{len(tidy_df.index.names) - 1}"
-    pivot_df = tidy_df.reset_index(-1).pivot().pivot_table(
-        columns=final_index_name, values=UNIQUE_COUNT_COL, index=[POLYGON_ID_COL, TIMESTAMP_COL]
+    pivot_df = tidy_df.reset_index(-1).pivot_table(
+        columns=final_index_name, values=UNIQUE_COUNT_COL, index=[HOURLY_METRIC_POLYGON_ID, TIMESTAMP_COL]
     )
+    logging.debug(f"pivot_df=\n{pivot_df}")
     logging.debug("...Pivot[ed] data")
 
     return pivot_df
