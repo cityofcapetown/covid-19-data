@@ -98,4 +98,4 @@ spv_adjust_munge_operator = covid_19_data_task(SPV_LAG_TASK)
 
 # Dependencies
 wcgh_data_fetch_operator >> wcgh_data_push_operator >> wcgh_ckan_data_push_operator
-wcgh_data_fetch_operator >> spv_data_fetch_operator >> spv_data_munge_operator >> spv_adjust_munge_operator
+wcgh_data_fetch_operator >> spv_data_fetch_operator >> spv_adjust_munge_operator
