@@ -6,3 +6,6 @@
 data/*
 widgets/*
 venv/*
+
+# Jupyter Notebook
+*.ipynb_checkpoint/
