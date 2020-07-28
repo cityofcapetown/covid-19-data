@@ -54,7 +54,7 @@ k8s_run_args = {
     "secrets": [secret_file],
     "env_vars": k8s_run_env,
     "image_pull_policy": "Always",
-     "startup_timeout_seconds": 60*30,
+    "startup_timeout_seconds": 60 * 30,
 }
 
 
@@ -97,4 +97,5 @@ SPV_ADJUST_TASK = 'spv-adjust-munge'
 spv_adjust_munge_operator = covid_19_data_task(SPV_LAG_TASK)
 
 # Dependencies
-WCGH_FETCH_TASK >> WCGH_PUSH_TASK >> WCGH_CKAN_PUSH_TASK >> SPV_COLLECT_TASK >> SPV_LAG_TASK >> SPV_ADJUST_TASK
+wcgh_data_fetch_operator >> wcgh_data_push_operator >> wcgh_ckan_data_push_operator
+wcgh_data_fetch_operator >> spv_data_fetch_operator >> spv_data_munge_operator >> spv_adjust_munge_operator
