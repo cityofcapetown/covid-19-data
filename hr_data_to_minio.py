@@ -198,9 +198,10 @@ def get_combined_list_df(site, auth, proxy_dict, minio_access, minio_secret):
 
     # setup file generator
     # Extract files
-    site_list = site.List(SP_EXCEL_LIST_NAME).GetListItems()
-    logging.debug(f"Got '{len(site_list)}' item(s) from '{SP_EXCEL_LIST_NAME}'")
-    site_list_dfs = get_excel_list_dfs(site_list, auth, proxy_dict, minio_access, minio_secret)
+    # This approach has been deprecated - the entries should be in the cache.
+    # site_list = site.List(SP_EXCEL_LIST_NAME).GetListItems()
+    # logging.debug(f"Got '{len(site_list)}' item(s) from '{SP_EXCEL_LIST_NAME}'")
+    # site_list_dfs = get_excel_list_dfs(site_list, auth, proxy_dict, minio_access, minio_secret)
 
     # Batch files
     batch_list_dfs = (
