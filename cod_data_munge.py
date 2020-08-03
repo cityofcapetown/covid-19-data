@@ -88,7 +88,7 @@ def generate_community_organisation_datasets(org_df):
     org_df[LOCATION_COLUMN] = org_df[LOCATION_COLUMN].apply(
         lambda loc: shapely.wkt.loads(loc) if pandas.notna(loc) else None
     )
-    org_gdf = geopandas.GeoDataFrame(org_df, geometry=LOCATION_COLUMN)
+    org_gdf = geopandas.GeoDataFrame(org_df, geometry=LOCATION_COLUMN).dropna(subset=[LOCATION_COLUMN])
 
     # First, produce a dataset with everything in it
     yield "all", org_df, org_gdf
@@ -97,7 +97,12 @@ def generate_community_organisation_datasets(org_df):
     sectors = org_df[SECTOR_COLUMN].unique()
     logging.debug(f"Found the following sectors: {', '.join(sectors)}")
     for sector in sectors:
-        yield sector, org_df.query(f"{SECTOR_COLUMN} == @sector"), org_gdf.query(f"{SECTOR_COLUMN} == @sector")
+        sector_df = org_df.query(f"{SECTOR_COLUMN} == @sector")
+        logging.debug(f"sector_df.shape={sector_df.shape}")
+        sector_gdf = org_gdf.query(f"{SECTOR_COLUMN} == @sector")
+        logging.debug(f"sector_gdf.shape={sector_gdf.shape}")
+
+        yield sector, sector_df, sector_gdf
 
 
 def write_org_data_to_minio(org_sector_name, org_df, org_gdf, minio_access, minio_secrety):
