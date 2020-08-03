@@ -214,7 +214,8 @@ def get_combined_list_df(site, auth, proxy_dict, minio_access, minio_secret):
 
     # concat
     combined_df = pandas.concat([
-        df for df in [xml_list_df, *site_list_dfs, *batch_list_dfs]
+        # df for df in [xml_list_df, *site_list_dfs, *batch_list_dfs]
+        df for df in [xml_list_df, *batch_list_dfs]
         if df is not None
     ])
 
