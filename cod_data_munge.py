@@ -13,14 +13,17 @@ import cod_to_minio
 
 GEOCODING_LOOKUP = "community-organisation-database.geocode-lookup"
 
-cod_flattened_columns = ["ORG_NAME", 'CATEGORY_DESCRIPTION', 'SECTOR_DESCRIPTION1', 'ORGWARDS', 'SUBCOUNCIL_DESCRIPTION',
-                         'IG_WARD', 'ORG_STREETNO', 'ORG_STREETNAME', 'ORG_SUBURBNAME', 'ORG_POSTAL_POST_CODE']
+cod_flattened_columns = ["ORG_NAME", 'CATEGORY_DESCRIPTION', 'SECTOR_DESCRIPTION1',
+                         'ORG_STREETNO', 'ORG_STREETNAME', 'ORG_SUBURBNAME', 'ORG_POSTAL_POST_CODE']
 
 REPORT_EMAIL_ADDRESS = 'ORG_EMAIL_ADDRESS'
 ORG_EMAIL_ADDRESS = 'ORG_EMAIL_ADDRESS'
 REPORT_PHONE_COLUMN = "TEL_NUMBER"
 ORG_PHONE_COLUMN = "ORG_PHONE_NUMBER"
 SECTOR_COLUMN = "SECTOR_DESCRIPTION1"
+ORG_WARDS_COLUMN = "ORGWARDS"
+IG_WARDS_COLUMN = "IG_WARD"
+SUBCOUNCIL_COLUMN = 'SUBCOUNCIL_DESCRIPTION'
 
 COD_ADDRESS_COLUMN = 'ORG_ADDRESS'
 LOCATION_COLUMN = "LOCATION"
@@ -58,7 +61,10 @@ def flatten_export_report(report_df):
             ),
             ORG_EMAIL_ADDRESS: (
                 groupby_df[REPORT_EMAIL_ADDRESS].mode()[0] if groupby_df[REPORT_EMAIL_ADDRESS].count() else None
-            )
+            ),
+            ORG_WARDS_COLUMN: ", ".join(groupby_df[ORG_WARDS_COLUMN].dropna().drop_duplicates().astype(str).values),
+            IG_WARDS_COLUMN: ", ".join(groupby_df[IG_WARDS_COLUMN].dropna().drop_duplicates().astype(str).values),
+            SUBCOUNCIL_COLUMN: ", ".join(groupby_df[SUBCOUNCIL_COLUMN].dropna().drop_duplicates().astype(str).values),
         })
     ).reset_index()
     logging.debug(f"org_df.shape={org_df.shape}")
