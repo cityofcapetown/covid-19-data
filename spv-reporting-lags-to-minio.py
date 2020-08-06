@@ -20,7 +20,7 @@ BUCKET = 'covid'
 # set the number of data points required for calculating the median for each lag day
 WINDOW = 21
 # set the number of days from today to drop due to incomplete lag curves
-DROP_LAST_DAYS = 15
+DROP_LAST_DAYS = 10
 # set the max number of lag days to calculate adjustments for
 MAX_LAG_DAYS = 60
 # set the filter date
