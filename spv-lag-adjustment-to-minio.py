@@ -10,6 +10,7 @@ import sys
 import tempfile
 # external imports
 from db_utils import minio_utils
+import numpy as np
 import pandas as pd
 from pandas.tseries.offsets import BDay
 
@@ -18,12 +19,20 @@ __author__ = "Colin Anthony"
 
 
 # set the minio variables
-MINIO_BUCKET = 'covid'
-PREFIX_OVERRIDE = "data/private/"
-LAG_ADJUSTED_OUTFILE = "ct-all-cases-lag-adjusted"
-MINIO_CLASSIFICATION = minio_utils.DataClassification.EDGE
-# set the dataset
+LAG_FILE = "data/private/spv_lag_freq_table_wc_districts.csv"
 LATEST_SPV_FILE = "ct_all_cases.csv"
+LAG_ADJUSTED_OUTFILE = "ct-all-cases-lag-adjusted"
+MINIO_BUCKET = 'covid'
+SPV_PREFIX_OVERRIDE = "data/private/"
+MINIO_CLASSIFICATION = minio_utils.DataClassification.EDGE
+
+# groupby variable for CT district lag
+GRP_COL = "District"
+DIAGNOSIS_LAG = "Date.of.Diagnosis"
+ADMISSION_LAG = "Admission.Date"
+ICU_LAG = "Date.of.ICU.Admission"
+DEATH_LAG = "Date.of.Death"
+
 # set the filter dates
 START_DATE = "2020-04-28"
 
@@ -65,12 +74,12 @@ if __name__ == "__main__":
     if not pathlib.Path(secrets_path).glob("*.json"):
         logging.error(f"Secrets file not found in ENV: {SECRETS_PATH_VAR}")
         sys.exit(-1)
-        
+
     # _________________________________________________________________
     # get spv latest
     logging.debug(f"Getting the latest spv data")
     spv_latest = minio_csv_to_df(
-        minio_filename_override=f"{PREFIX_OVERRIDE}{LATEST_SPV_FILE}",
+        minio_filename_override=f"{SPV_PREFIX_OVERRIDE}{LATEST_SPV_FILE}",
         minio_key=secrets["minio"]["edge"]["access"],
         minio_secret=secrets["minio"]["edge"]["secret"],
     )
@@ -140,57 +149,59 @@ if __name__ == "__main__":
     # _________________________________________________________________
     # read in the lag distribution and make the adjustments 
     logging.debug(f"Getting the lag adjustemnt tables from  minio")
-    diag_lag_df = minio_csv_to_df(
-        minio_filename_override=f"{PREFIX_OVERRIDE}wc_spv_DiagnosisDate_freq_table.csv",
+    all_lag_df = minio_csv_to_df(
+        minio_filename_override=LAG_FILE,
         minio_key=secrets["minio"]["edge"]["access"],
         minio_secret=secrets["minio"]["edge"]["secret"],
     )
-    admit_lag_df = minio_csv_to_df(
-        minio_filename_override=f"{PREFIX_OVERRIDE}wc_spv_AdmissionDate_freq_table.csv",
-        minio_key=secrets["minio"]["edge"]["access"],
-        minio_secret=secrets["minio"]["edge"]["secret"],
-    )
-    icu_lag_df = minio_csv_to_df(
-        minio_filename_override=f"{PREFIX_OVERRIDE}wc_spv_ICUAdmissionDate_freq_table.csv",
-        minio_key=secrets["minio"]["edge"]["access"],
-        minio_secret=secrets["minio"]["edge"]["secret"],
-    )
-    mort_lag_df = minio_csv_to_df(
-        minio_filename_override=f"{PREFIX_OVERRIDE}wc_spv_DeathDate_freq_table.csv",
-        minio_key=secrets["minio"]["edge"]["access"],
-        minio_secret=secrets["minio"]["edge"]["secret"],
-    )    
+    
+    diag_lag_df = all_lag_df.query(f"{GRP_COL} == 'City of Cape Town' & lag_type == @DIAGNOSIS_LAG")
+    admit_lag_df = all_lag_df.query(f"{GRP_COL} == 'City of Cape Town' & lag_type == @ADMISSION_LAG")
+    icu_lag_df = all_lag_df.query(f"{GRP_COL} == 'City of Cape Town' & lag_type == @ICU_LAG")
+    mort_lag_df = all_lag_df.query(f"{GRP_COL} == 'City of Cape Town' & lag_type == @DEATH_LAG")
     
     # make the lag adjustments
     logging.debug(f"add the lag adjusted counts column to the dataframe")
+    
     diag_cnts_df = diag_cnts_df.join(diag_lag_df.set_index("lag_days"), on="lag_days")
+    # convert nan to 1 for zero adjustment if beyond the max lag day calculated
     diag_cnts_df.loc[:, "median"] = diag_cnts_df["median"].apply(lambda x: 1 if pd.isna(x) else x)
     diag_cnts_df.loc[:, "Diagnoses_adjcount"] = diag_cnts_df["Diagnoses_count"] / diag_cnts_df["median"]
     diag_cnts_df.rename(columns={"Date.of.Diagnosis": "Date"}, inplace=True)
     diag_cnts_df.loc[:, "Date"] = pd.to_datetime(diag_cnts_df["Date"])
-
+    
     admit_cnts_df = admit_cnts_df.join(admit_lag_df.set_index("lag_days"), on="lag_days")
+    # convert nan to 1 for zero adjustment if beyond the max lag day calculated
     admit_cnts_df.loc[:, "median"] = admit_cnts_df["median"].apply(lambda x: 1 if pd.isna(x) else x)
     admit_cnts_df.loc[:, "Admissions_adjcount"] = admit_cnts_df["Admissions_count"] / admit_cnts_df["median"]
     admit_cnts_df.rename(columns={"Admission.Date": "Date"}, inplace=True)
     admit_cnts_df.loc[:, "Date"] = pd.to_datetime(admit_cnts_df["Date"])
 
     icu_cnts_df = icu_cnts_df.join(icu_lag_df.set_index("lag_days"), on="lag_days")
+    # convert nan to 1 for zero adjustment if beyond the max lag day calculated
     icu_cnts_df.loc[:, "median"] = icu_cnts_df["median"].apply(lambda x: 1 if pd.isna(x) else x)
     icu_cnts_df.loc[:, "ICUAdmissions_adjcount"] = icu_cnts_df["ICUAdmissions_count"] / icu_cnts_df["median"]
     icu_cnts_df.rename(columns={"Date.of.ICU.Admission": "Date"}, inplace=True)
     icu_cnts_df.loc[:, "Date"] = pd.to_datetime(icu_cnts_df["Date"])
 
     mort_cnts_df = mort_cnts_df.join(mort_lag_df.set_index("lag_days"), on="lag_days")
+    # convert nan to 1 for zero adjustment if beyond the max lag day calculated
     mort_cnts_df.loc[:, "median"] = mort_cnts_df["median"].apply(lambda x: 1 if pd.isna(x) else x)
     mort_cnts_df.loc[:, "Deaths_adjcount"] = mort_cnts_df["Deaths_count"] / mort_cnts_df["median"]
     mort_cnts_df.rename(columns={"Date.of.Death": "Date"}, inplace=True)
     mort_cnts_df.loc[:, "Date"] = pd.to_datetime(mort_cnts_df["Date"])
-    
+
+    # filter out the lag day 1 adjusted data point due to extreme instability
+    diag_cnts_df.loc[(diag_cnts_df["lag_days"] == 1),["Diagnoses_adjcount"]] = np.nan
+    admit_cnts_df.loc[(admit_cnts_df["lag_days"] == 1),["Admissions_adjcount"]] = np.nan
+    icu_cnts_df.loc[(icu_cnts_df["lag_days"] == 1),["ICUAdmissions_adjcount"]] = np.nan
+    mort_cnts_df.loc[(mort_cnts_df["lag_days"] == 1),["Deaths_adjcount"]] = np.nan
+
     # _________________________________________________________________
     # create a master dataframe with the lag adjusted spv 
-    logging.debug(f"generating master dataframe to plot from")
-    plot_master_df = pd.DataFrame({"Date": pd.date_range(START_DATE, latest_export)})
+    logging.debug(f"generating master dataframe to plot from")    
+    end_date = pd.to_datetime(latest_export) - timedelta(days=1)
+    plot_master_df = pd.DataFrame({"Date": pd.date_range(START_DATE, end_date)})
     plot_master_df.loc[:, "Date"] = pd.to_datetime(plot_master_df["Date"])
     plot_master_df.set_index("Date", inplace=True)
 
@@ -201,7 +212,7 @@ if __name__ == "__main__":
 
     result = minio_utils.dataframe_to_minio(
         plot_master_df,
-        filename_prefix_override=f"{PREFIX_OVERRIDE}{LAG_ADJUSTED_OUTFILE}",
+        filename_prefix_override=f"{SPV_PREFIX_OVERRIDE}{LAG_ADJUSTED_OUTFILE}",
         minio_bucket=MINIO_BUCKET,
         minio_key=secrets["minio"]["edge"]["access"],
         minio_secret=secrets["minio"]["edge"]["secret"],

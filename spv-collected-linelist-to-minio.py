@@ -16,8 +16,9 @@ __author__ = "Colin Anthony"
 
 BUCKET = "covid"
 SPV_PREFIX = "data/staging/wcgh_backup/"
-FILE_OVERRIDE = f"data/private/wc_spv_collected_latest"
-
+COLS = ["Export Date", "Date of Diagnosis", "Admission Date", "Date of ICU Admission", "Date of Death", "District", "Subdistrict"]
+WC_FILE_OVERRIDE = f"data/private/spv_collected_latest"
+    
 
 def minio_txt_to_df(minio_filename_override, minio_bucket, minio_key, minio_secret, data_classification):
     logging.debug("Pulling data from Minio bucket...")
@@ -82,8 +83,7 @@ if __name__ == "__main__":
     
     # initialize main df to collect daily dumps
     logging.debug(f"Initializing empty master dataframe")
-    cols = ["Export Date", "Date of Diagnosis", "Admission Date", "Date of ICU Admission", "Date of Death"]
-    master_df = pd.DataFrame(columns=cols)
+    master_df = pd.DataFrame(columns=COLS)
     
     logging.debug(f"collect the linelist data from minio")
     for file in spv_files:
@@ -101,7 +101,7 @@ if __name__ == "__main__":
             
         logging.debug(f"merging {file} with master dataframe")
         frames = [master_df, wc_day_cases_df]
-        master_df = pd.concat([frm[cols] for frm in frames])
+        master_df = pd.concat([frm[COLS] for frm in frames])
         
     # set the date format
     master_df.loc[:, "Export Date"] = pd.to_datetime(master_df["Export Date"]).dt.date
@@ -112,16 +112,16 @@ if __name__ == "__main__":
     logging.debug(f"renaming columns in final collected spv dataframe")
     rename_cols = {col_name: col_name.replace(" ", ".") for col_name in list(master_df)}
     master_df.rename(columns=rename_cols, inplace=True)
-        
+
     # put the file in minio
-    logging.debug(f"Sending collected data to minio")
+    logging.debug(f"Sending collected WC data to minio")
     result = minio_utils.dataframe_to_minio(
         master_df,
         minio_bucket="covid",
         minio_key=secrets["minio"]["edge"]["access"],
         minio_secret=secrets["minio"]["edge"]["secret"],
         data_classification=minio_utils.DataClassification.EDGE,
-        filename_prefix_override=FILE_OVERRIDE,
+        filename_prefix_override=WC_FILE_OVERRIDE,
         data_versioning=False,
         file_format="csv")
 
