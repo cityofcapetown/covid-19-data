@@ -131,5 +131,5 @@ billing_data_munge_operator = KubernetesPodOperator(
 
 ############################################################################
 # Task ordering
-public_data_to_minio_operator >> private_data_to_minio_operator >> billing_data_to_minio_operator >> billing_data_munge_operator
+billing_data_to_minio_operator >> billing_data_munge_operator
 
