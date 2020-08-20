@@ -21,7 +21,7 @@ CITY_HEX_BUCKET = "city-hex_polygons"
 HEX8_FILENAME = "city-hex-polygons-8.geojson"
 
 HOURLY_METRIC_START = "2020-03-01"
-HOURLY_METRIC_END = "2020-07-16"
+HOURLY_METRIC_END = "2020-08-15"
 
 START_DATE_COL = "start_date"
 DATE_FORMAT = "%Y%m%d"
