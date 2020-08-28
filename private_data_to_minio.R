@@ -106,8 +106,14 @@ minio_to_file(wc_case_data,
 
 wc_all_cases <- read_tsv(wc_case_data) %>% dplyr::rename_all(list(~make.names(.)))
 
+
 if (sum(is.na(wc_all_cases$Date.of.Diagnosis)) / nrow(wc_all_cases) >= 0.1) {
   stop("More than 10% of the WC case data has NA dates")
+}
+
+SPATIAL_TEST <- wc_all_cases %>% mutate(SPATIAL_TEST = (Subdistrict != "Unallocated") & (District == "Unallocated")) %>% pull(SPATIAL_TEST)
+if (sum(SPATIAL_TEST) / nrow(wc_all_cases) >= 0.005) {
+  stop("More than 0.5% of the WC case data has unallocated subdistricts")
 }
 
 wc_all_cases <- wc_all_cases %>% drop_na(Date.of.Diagnosis)
@@ -127,6 +133,15 @@ wc_all_cases <- wc_all_cases %>%
               Date.of.ICU.Admission,
               Discharge.Date,
               Date.of.Death, na.rm = T) >= min_date)
+
+# Fix subdistrict names
+# wc_all_cases  %>% 
+#   rowwise() %>% 
+#   mutate(Subdistrict = str_replace_all(Subdistrict, District, "")) %>% 
+#   ungroup() %>% 
+#   mutate(Subdistrict = str_replace_all(Subdistrict, "-", "")) %>%
+#   mutate(Subdistrict = str_trim(Subdistrict, side = "both")) %>%
+#   pull(Subdistrict) %>% unique() 
 
 write_csv(wc_all_cases, "data/private/wc_all_cases.csv")
 
