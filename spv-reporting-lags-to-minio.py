@@ -87,9 +87,9 @@ def filter_df(linelists_df, DATE_COL_TO_USE, DROP_LAST_DAYS):
         [Object]: Pandas DataFrame
     """
     wc_all_linelists_filt = linelists_df[[EXPORT_DATE_COL, DATE_COL_TO_USE]].copy()
-    wc_all_linelists_filt.loc[:, EXPORT_DATE_COL] = pd.to_datetime(wc_all_linelists_filt[EXPORT_DATE_COL]).dt.date
-    wc_all_linelists_filt.loc[:, EXPORT_DATE_COL] = pd.to_datetime(wc_all_linelists_filt[EXPORT_DATE_COL])
-    wc_all_linelists_filt.loc[:, DATE_COL_TO_USE] = pd.to_datetime(wc_all_linelists_filt[DATE_COL_TO_USE])
+    wc_all_linelists_filt.loc[:, EXPORT_DATE_COL] = pd.to_datetime(wc_all_linelists_filt[EXPORT_DATE_COL], errors = 'coerce').dt.date
+    wc_all_linelists_filt.loc[:, EXPORT_DATE_COL] = pd.to_datetime(wc_all_linelists_filt[EXPORT_DATE_COL], errors = 'coerce')
+    wc_all_linelists_filt.loc[:, DATE_COL_TO_USE] = pd.to_datetime(wc_all_linelists_filt[DATE_COL_TO_USE], errors = 'coerce')
     
     # get the latest export date
     logging.debug(f"getting the latest export date")
@@ -248,6 +248,7 @@ if __name__ == "__main__":
 
             # drop last {DROP_LAST_DAYS} days because of incomplete lag curves and drop the days before data collection was relevant
             logging.info("Filtering to specific columns and converting to datetime format and Calculating the lag days")
+            logging.debug(f"working on {dist} : {subd}")
             use_dates_df = filter_df(dist_subd_df, date_col_to_use, DROP_LAST_DAYS)
 
             if use_dates_df.empty:
