@@ -148,14 +148,17 @@ HR_TRANSACTIONAL_COLUMN_VERIFICATION_FUNCS = {
     HR_TRANSACTIONAL_STAFFNUMBER: (lambda col: (col.str.match(r"^\d{8}$") == True),
                                    lambda invalid_df: invalid_df[HR_TRANSACTIONAL_STAFFNUMBER].head(10)),
     HR_STATUS: (lambda col: (col.isin(VALID_STATUSES) == True),
-                lambda
-                    invalid_df: f"\n{invalid_df[HR_STATUS].value_counts()}, \n{invalid_df[HR_STATUS].value_counts().index}"),
-    HR_TRANSACTION_DATE: (lambda col: pandas.to_datetime(col, format=ISO8601_FORMAT, errors='coerce').notna(),
-                          lambda
-                              invalid_df: f"\n{invalid_df[HR_TRANSACTION_DATE].value_counts()}, \n{invalid_df[HR_TRANSACTION_DATE].value_counts().index}"),
+                lambda invalid_df: f"\n{invalid_df[HR_STATUS].value_counts()}, "
+                                   f"\n{invalid_df[HR_STATUS].value_counts().index}"),
+    HR_TRANSACTION_DATE: (lambda col: (
+        (pandas.to_datetime(col, format=ISO8601_FORMAT, errors='coerce').notna()) &
+        (pandas.to_datetime(col, format=ISO8601_FORMAT, errors='coerce').date() <= pandas.Timestamp.today().date())
+    ),
+                          lambda invalid_df: f"\n{invalid_df[HR_TRANSACTION_DATE].value_counts()}, "
+                                             f"\n{invalid_df[HR_TRANSACTION_DATE].value_counts().index}"),
     HR_UNIT_EVALUATION: (lambda col: (col.isin(VALID_EVALUATION_STATUSES)),
-                         lambda
-                             invalid_df: f"\n{invalid_df[HR_UNIT_EVALUATION].value_counts()}, \n{invalid_df[HR_UNIT_EVALUATION].value_counts().index}")
+                         lambda invalid_df: f"\n{invalid_df[HR_UNIT_EVALUATION].value_counts()}, "
+                                            f"\n{invalid_df[HR_UNIT_EVALUATION].value_counts().index}")
 }
 
 HR_APPROVER = "Approver"
