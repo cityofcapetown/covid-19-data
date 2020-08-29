@@ -106,6 +106,7 @@ ohs_data_fetch_operator = covid_19_data_task(OHS_FETCH_TASK)
 hr_data_fetch_operator >> hr_data_munge_operator
 hr_master_data_fetch_operator >> hr_master_data_munge_operator
 hr_master_data_munge_operator >> hr_data_munge_operator
+hr_sap_data_fetch_operator >> hr_sap_data_munge_operator
 hr_data_munge_operator >> hr_sap_data_munge_operator
 hr_sap_data_munge_operator >> hr_data_org_unit_munge_operator
 hr_master_data_munge_operator >> hr_data_org_unit_munge_operator
