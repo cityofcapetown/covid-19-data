@@ -152,7 +152,7 @@ HR_TRANSACTIONAL_COLUMN_VERIFICATION_FUNCS = {
                                    f"\n{invalid_df[HR_STATUS].value_counts().index}"),
     HR_TRANSACTION_DATE: (lambda col: (
         (pandas.to_datetime(col, format=ISO8601_FORMAT, errors='coerce').notna()) &
-        (pandas.to_datetime(col, format=ISO8601_FORMAT, errors='coerce').date() <= pandas.Timestamp.today().date())
+        (pandas.to_datetime(col, format=ISO8601_FORMAT, errors='coerce').dt.date <= pandas.Timestamp.today().date())
     ),
                           lambda invalid_df: f"\n{invalid_df[HR_TRANSACTION_DATE].value_counts()}, "
                                              f"\n{invalid_df[HR_TRANSACTION_DATE].value_counts().index}"),
@@ -364,7 +364,7 @@ if __name__ == "__main__":
     logging.info("Clean[ed] HR form data")
 
     logging.info("Dedup[ing] HR form data")
-    deduped_hr_form_df = update_hr_dataset(cleaned_hr_form_df)
+    deduped_hr_form_df = update_hr_dataset(cleaned_hr_form_df, hr_transactional_df)
     logging.info("Dedup[ed] HR form data")
 
     # Writing result out
