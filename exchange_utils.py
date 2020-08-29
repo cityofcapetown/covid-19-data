@@ -9,6 +9,17 @@ EXCHANGE_SERVER = "webmail.capetown.gov.za"
 EXCHANGE_EMAIL = "opm.data@capetown.gov.za"
 
 
+def set_exchange_loglevel(level):
+    # Turning down various exchange loggers - they're abit noisy
+    exchangelib_loggers = [
+        logging.getLogger(name)
+        for name in logging.root.manager.loggerDict
+        if name.startswith("exchangelib")
+    ]
+    for logger in exchangelib_loggers:
+        logger.setLevel(level)
+
+
 def setup_exchange_account(username, password,
                            exchange_server=EXCHANGE_SERVER, exchange_email=EXCHANGE_EMAIL):
     logging.debug("Creating config for account with username '{}'".format(username))
@@ -32,18 +43,27 @@ def setup_exchange_account(username, password,
     return account
 
 
-def filter_account(account, subject_filter):
+def filter_account(account, subject_filter=None, sender_filter=None):
     logging.debug("Filtering Inbox")
 
-    filtered_items = account.inbox.filter(subject__contains=subject_filter)
+    filters = {}
+    if subject_filter:
+        filters["subject__contains"] = subject_filter
+    if sender_filter:
+        filters["sender__icontains"] = sender_filter
+
+    filtered_items = account.inbox.filter(**filters)
 
     return filtered_items
 
 
-def get_latest_attachment_file(filtered_items):
+def get_attachment_files(filtered_items, most_recent_count=None):
     with tempfile.TemporaryDirectory() as tempdir:
         logging.debug("Created temp dir '{}'".format(tempdir))
-        for item in filtered_items.order_by('-datetime_received')[:1]:
+        items = filtered_items.order_by('-datetime_received')[
+                :most_recent_count] if most_recent_count else filtered_items
+
+        for item in items:
             logging.debug(
                 "Received match: '{} {} {}''".format(item.subject, item.sender, item.datetime_received)
             )
@@ -59,3 +79,7 @@ def get_latest_attachment_file(filtered_items):
                             buffer = fp.read(1024)
 
                     yield local_path
+
+
+def get_latest_attachment_file(filtered_items):
+    return get_attachment_files(filtered_items, 1)

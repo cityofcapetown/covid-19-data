@@ -72,14 +72,7 @@ if __name__ == "__main__":
     logging.info("Set[up] auth")
 
     logging.info("Gett[ing] Master Data from Emails")
-    # Turning down various exchange loggers - they're abit noisy
-    exchangelib_loggers = [
-        logging.getLogger(name)
-        for name in logging.root.manager.loggerDict
-        if name.startswith("exchangelib")
-    ]
-    for logger in exchangelib_loggers:
-        logger.setLevel(logging.INFO)
+    exchange_utils.set_exchange_loglevel(logging.INFO)
 
     filtered_items = exchange_utils.filter_account(account, SUBJECT_FILTER)
     for attachment_path in exchange_utils.get_latest_attachment_file(filtered_items):

@@ -81,11 +81,17 @@ def covid_19_data_task(task_name, task_kwargs={}):
 HR_FETCH_TASK = 'hr-data-fetch'
 hr_data_fetch_operator = covid_19_data_task(HR_FETCH_TASK)
 
+HR_SAP_FETCH_TASK = 'hr-sap-data-fetch'
+hr_sap_data_fetch_operator = covid_19_data_task(HR_SAP_FETCH_TASK, {"task_concurrency": 1})
+
 HR_MASTER_FETCH_TASK = 'hr-master-data-fetch'
 hr_master_data_fetch_operator = covid_19_data_task(HR_MASTER_FETCH_TASK)
 
 HR_MUNGE_TASK = 'hr-data-munge'
 hr_data_munge_operator = covid_19_data_task(HR_MUNGE_TASK)
+
+HR_SAP_MUNGE_TASK = 'hr-sap-data-munge'
+hr_sap_data_munge_operator = covid_19_data_task(HR_SAP_MUNGE_TASK)
 
 HR_MASTER_MUNGE_TASK = 'hr-master-data-munge'
 hr_master_data_munge_operator = covid_19_data_task(HR_MASTER_MUNGE_TASK)
@@ -100,5 +106,6 @@ ohs_data_fetch_operator = covid_19_data_task(OHS_FETCH_TASK)
 hr_data_fetch_operator >> hr_data_munge_operator
 hr_master_data_fetch_operator >> hr_master_data_munge_operator
 hr_master_data_munge_operator >> hr_data_munge_operator
-hr_data_munge_operator >> hr_data_org_unit_munge_operator
+hr_data_munge_operator >> hr_sap_data_munge_operator
+hr_sap_data_munge_operator >> hr_data_org_unit_munge_operator
 hr_master_data_munge_operator >> hr_data_org_unit_munge_operator

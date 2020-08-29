@@ -17,8 +17,10 @@ HR_MASTER_STAFFNUMBER = 'StaffNumber'
 HR_TRANSACTION_DATE = 'Date'
 HR_STATUS = "Categories"
 HR_UNIT_EVALUATION = "Evaluation"
+HR_MANAGER = "Manager"
+HR_MANAGER_STAFFNUMBER = 'Manager Staff No'
 HR_TRANSACTIONAL_COLUMNS = [HR_TRANSACTIONAL_STAFFNUMBER, HR_STATUS, HR_TRANSACTION_DATE, HR_UNIT_EVALUATION,
-                            'Manager', 'Manager Staff No']
+                            HR_MANAGER, HR_MANAGER_STAFFNUMBER]
 
 HR_COLUMNS_TO_FLATTEN = {HR_TRANSACTIONAL_STAFFNUMBER, HR_STATUS, 'Employee Name'}
 
@@ -84,6 +86,42 @@ STATUS_REMAP = {
     "Quarantine leave - working remotely, COVID-10 exposure/isolation": 'COVID-19 Quarantine – Working',
     'Quarantine leave - unable to work remotely, COVID-19 exposure/isolation': 'COVID-19 Quarantine - Not Working',
     "Quarantine leave - working remotely": 'Working from Home',
+
+    # SAP Status Remaps
+    # zemp_q0001_v7_bics_dash_auto
+    'Sick Leave WD with c': 'Sick Leave (NOT linked to COVID-19)',
+    'Lve WD All': "Leave",
+    'Non compulsory leave': 'Leave',
+    'Quarantine': 'COVID-19 Quarantine - Not Working',
+    'Lve WD All : < day': "Leave",
+    'Unpaid ILO Sick with': 'Sick Leave (NOT linked to COVID-19)',
+    'Maternity - Paid': "Leave",
+    'Suspended - Unpaid S': "Suspended",
+    'Lve ILO Sick with ce': 'Sick Leave (NOT linked to COVID-19)',
+    'Suspended - Unpaid': "Suspended",
+    "Exam": "Leave",
+    'Family Responsibilit': "Leave",
+    'Maternity - Unpaid': "Leave",
+    'Long Service Leave W': "Leave",
+    'Unpaid - Authorized': "Absent",
+    'Leave in Lieu of O/T': "Leave",
+    'Study': "Leave",
+    'Unpaid - Unauthorize': "Absent",
+    'Lve ILO Sick w cert<': 'Sick Leave (NOT linked to COVID-19)',
+    'Sick Lve with cert:': 'Sick Leave (NOT linked to COVID-19)',
+    'Reward & Recognition': "Leave",
+    'TOIL Leave - Days': "Leave",
+    'Sick Lve w/o cert.:': 'Sick Leave (NOT linked to COVID-19)',
+    'Court Attendance': "Leave",
+    'Lve ILO Sick w/out c': 'Sick Leave (NOT linked to COVID-19)',
+    'Sick Leave WD w/out': 'Sick Leave (NOT linked to COVID-19)',
+    'Reward&Recognition <': "Leave",
+
+    # zatt_2002_auto
+    'Work from Home': 'Working from Home',
+
+    # zemp_q0001_v7_bics_covid_auto
+    'COVID-19 Quarantine': 'COVID-19 Quarantine - Not Working',
 }
 for val in STATUS_REMAP.values():
     assert val in VALID_STATUSES, f"{val} not in status list"
@@ -92,13 +130,14 @@ VALID_EVALUATION_STATUSES = (
     'We can deliver on daily tasks',
     'We can deliver 75% or less of daily tasks',
     'We cannot deliver on daily tasks',
+    None
 )
 
 EVALUATION_STATUS_REMAP = {
     'We can deliver on 75% or less of daily tasks': 'We can deliver 75% or less of daily tasks',
     'We can do the bare minimum': 'We can deliver 75% or less of daily tasks',
     'We can continue as normal': 'We can deliver on daily tasks',
-
+    None: None
 }
 for val in EVALUATION_STATUS_REMAP.values():
     assert val in VALID_EVALUATION_STATUSES, f"{val} not in status list"
@@ -118,13 +157,17 @@ HR_TRANSACTIONAL_COLUMN_VERIFICATION_FUNCS = {
                          lambda
                              invalid_df: f"\n{invalid_df[HR_UNIT_EVALUATION].value_counts()}, \n{invalid_df[HR_UNIT_EVALUATION].value_counts().index}")
 }
+
+HR_APPROVER = "Approver"
+HR_APPROVER_STAFFNUMBER = "ApproverStaffNumber"
 HR_TRANSACTIONAL_COLUMN_RENAME_DICT = {
     HR_TRANSACTIONAL_STAFFNUMBER: HR_MASTER_STAFFNUMBER,
-    'Manager': 'Approver',
-    'Manager Staff No': 'ApproverStaffNumber'
+    HR_MANAGER: HR_APPROVER,
+    HR_MANAGER_STAFFNUMBER: HR_APPROVER_STAFFNUMBER
 }
 
-CLEANED_HR_TRANSACTIONAL = "data/private/business_continuity_people_status"
+CLEANED_HR_TRANSACTIONAL_PREFIX = "data/private/business_continuity_people_status"
+CLEANED_HR_TRANSACTIONAL_FILENAME = f"{CLEANED_HR_TRANSACTIONAL_PREFIX}.csv"
 
 
 def get_data_df(filename, minio_access, minio_secret):
@@ -213,7 +256,7 @@ def clean_hr_form(hr_df, master_df):
     for col, (validity_func, debug_func) in HR_TRANSACTIONAL_COLUMN_VERIFICATION_FUNCS.items():
         col_validity = validity_func(hr_df[col])
 
-        if col_validity.sum() > 0:
+        if col_validity.sum() != col_validity.shape[0]:
             logging.warning(f"Found {(~col_validity).sum()} invalid values in attribute '{col}'")
             logging.debug(f"hr_df[~col_validity].head(10)=\n{hr_df[~col_validity].head(10)}")
             logging.debug(f"debug_func(hr_df[~col_validity])=\n{debug_func(hr_df[~col_validity])}")
@@ -245,10 +288,7 @@ def clean_hr_form(hr_df, master_df):
     return cleaned_hr_df
 
 
-def update_hr_form(cleaned_hr_df):
-    current_state_df = get_data_df(CLEANED_HR_TRANSACTIONAL + ".csv",
-                                   secrets["minio"]["edge"]["access"],
-                                   secrets["minio"]["edge"]["secret"])
+def update_hr_dataset(cleaned_hr_df, current_state_df):
     current_state_df[HR_MASTER_STAFFNUMBER] = current_state_df[HR_MASTER_STAFFNUMBER].astype('str')
     current_state_df = current_state_df[cleaned_hr_df.columns]
 
@@ -304,6 +344,9 @@ if __name__ == "__main__":
     hr_form_df = get_data_df(HR_FORM_FILENAME_PATH,
                              secrets["minio"]["edge"]["access"],
                              secrets["minio"]["edge"]["secret"])
+    hr_transactional_df = get_data_df(CLEANED_HR_TRANSACTIONAL_FILENAME,
+                                      secrets["minio"]["edge"]["access"],
+                                      secrets["minio"]["edge"]["secret"])
     hr_master_df = get_data_df(HR_MASTER_FILENAME_PATH,
                                secrets["minio"]["edge"]["access"],
                                secrets["minio"]["edge"]["secret"])
@@ -318,7 +361,7 @@ if __name__ == "__main__":
     logging.info("Clean[ed] HR form data")
 
     logging.info("Dedup[ing] HR form data")
-    deduped_hr_form_df = update_hr_form(cleaned_hr_form_df)
+    deduped_hr_form_df = update_hr_dataset(cleaned_hr_form_df)
     logging.info("Dedup[ed] HR form data")
 
     # Writing result out
@@ -327,7 +370,7 @@ if __name__ == "__main__":
                                    secrets["minio"]["edge"]["access"],
                                    secrets["minio"]["edge"]["secret"],
                                    minio_utils.DataClassification.EDGE,
-                                   filename_prefix_override=CLEANED_HR_TRANSACTIONAL,
+                                   filename_prefix_override=CLEANED_HR_TRANSACTIONAL_PREFIX,
                                    data_versioning=False,
                                    file_format="csv")
     logging.info("...Done!")
