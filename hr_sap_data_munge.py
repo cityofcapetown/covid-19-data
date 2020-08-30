@@ -45,7 +45,7 @@ HR_TRANSACTIONAL_COLUMN_VERIFICATION_FUNCS = {
     hr_data_munge.HR_TRANSACTION_DATE: (
         lambda col: (
                 pandas.to_datetime(col, format=SAP_DATE_FORMAT, errors='coerce').notna() &
-                (pandas.to_datetime(col, format=SAP_DATE_FORMAT, errors='coerce').dt.date() <=
+                (pandas.to_datetime(col, format=SAP_DATE_FORMAT, errors='coerce').dt.date <=
                  pandas.Timestamp.today().date())
         ),
         lambda invalid_df: (
