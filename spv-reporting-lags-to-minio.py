@@ -276,6 +276,7 @@ if __name__ == "__main__":
     if new_name_system:
         # add district name back in for the merge operations when adjusting plot values 
         spv_linelists_df.loc[:, "Subdistrict"] = spv_linelists_df['District'] + " - " + spv_linelists_df["Subdistrict"]
+        spv_linelists_df.loc[:, "Subdistrict"] = spv_linelists_df["Subdistrict"].str.replace("Unallocated - Unallocated", "Unallocated")
    
     ############
     ###################################
