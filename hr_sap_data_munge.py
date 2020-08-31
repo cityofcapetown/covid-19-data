@@ -40,19 +40,6 @@ HR_MASTER_TO_TRANSACTIONAL_REMAP = {
 }
 
 SAP_DATE_FORMAT = "%d.%m.%Y"
-HR_TRANSACTIONAL_COLUMN_VERIFICATION_FUNCS = {
-    # col : (validation function, debugging function)
-    hr_data_munge.HR_TRANSACTION_DATE: (
-        lambda col: (
-                pandas.to_datetime(col, format=SAP_DATE_FORMAT, errors='coerce').notna() &
-                (pandas.to_datetime(col, format=SAP_DATE_FORMAT, errors='coerce').dt.date <=
-                 pandas.Timestamp.today().date())
-        ),
-        lambda invalid_df: (
-            f"\n{invalid_df[hr_data_munge.HR_TRANSACTION_DATE].value_counts()}, "
-            f"\n{invalid_df[hr_data_munge.HR_TRANSACTION_DATE].value_counts().index}"
-        )),
-}
 
 HR_TRANSACTIONAL_COLUMN_RENAME_DICT = {
     HR_MASTER_APPROVER_COLUMN: hr_data_munge.HR_APPROVER,
@@ -64,6 +51,13 @@ def remap_columns(data_df, columns_remap):
     logging.debug(f"data_df.columns={data_df.columns}")
     data_df.rename(columns=columns_remap, inplace=True)
     logging.debug(f"data_df.columns={data_df.columns}")
+
+    # Getting dates to conform to ISO8601
+    data_df[hr_data_munge.HR_TRANSACTION_DATE] = pandas.to_datetime(data_df[hr_data_munge.HR_TRANSACTION_DATE],
+                                                                    format=SAP_DATE_FORMAT)
+    data_df[hr_data_munge.HR_TRANSACTION_DATE] = data_df[hr_data_munge.HR_TRANSACTION_DATE].dt.strftime(
+        hr_data_munge.ISO8601_FORMAT
+    )
 
     return data_df
 
@@ -133,10 +127,6 @@ if __name__ == "__main__":
 
         logging.info(f"Clean[ing] SAP HR data '{sap_filename}'")
         # Overridding transactional column checks
-        hr_data_munge.HR_TRANSACTIONAL_COLUMN_VERIFICATION_FUNCS = {
-            **hr_data_munge.HR_TRANSACTIONAL_COLUMN_VERIFICATION_FUNCS,
-            **HR_TRANSACTIONAL_COLUMN_VERIFICATION_FUNCS
-        }
         hr_data_munge.HR_TRANSACTIONAL_COLUMN_RENAME_DICT = {
             **hr_data_munge.HR_TRANSACTIONAL_COLUMN_RENAME_DICT,
             **HR_TRANSACTIONAL_COLUMN_RENAME_DICT
