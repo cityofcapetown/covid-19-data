@@ -198,7 +198,14 @@ def get_lag_median_stdev(master_lag_df, DATE_COL_TO_USE, window):
     final_lag_df.loc[:, "stdev"] = stderrs
     final_lag_df.sort_values("lag_days", ascending=True, inplace=True)
     return final_lag_df
-   
+
+
+def district_label_fix(x, y):
+    if x == "Unallocated" and not pd.isna(y):
+        return y
+    else:
+        return x
+
 
 if __name__ == "__main__":
     logging.basicConfig(level=logging.DEBUG,
@@ -233,6 +240,13 @@ if __name__ == "__main__":
         logging.debug(f"dataframe was empty for target file {target_file}\nexiting")
         sys.exit(-1)
     
+    # check which naming system was used in the latest export
+    latest_export = spv_linelists_df["Export.Date"].max()
+    check = spv_linelists_df.query("`Export.Date` == @latest_export") 
+    if any(check["Subdistrict"].str.contains(" - ")):
+        new_name_system = True
+    else:
+        new_name_system = False
     # specify the target column for lag calculation
     logging.info("Setting the target column for lag calculations")
     all_lag_columns = [DIAGNOSIS_LAG, ADMISSION_LAG, ICU_LAG, DEATH_LAG]
@@ -242,6 +256,30 @@ if __name__ == "__main__":
     
     # get the lag distributions for all the subdistricts if there is enough data
     logging.debug("Getting lag distribution for all subdistricts where possible")
+    
+    ###################################
+    ###########
+    # correct the District value where its unallocated and subdistric is not unallocated
+    
+    # get the district value from the subdistrict name if present else nan
+    spv_linelists_df.loc[:, "new_d"] = spv_linelists_df["Subdistrict"].apply(lambda x: x.split(" - ")[0] if len(x.split(" - ")) > 1 else np.nan)
+    
+    # update the district name
+    spv_linelists_df.loc[:, "District"] = spv_linelists_df.apply(lambda df: district_label_fix(df["District"], df["new_d"]), axis="columns")
+    spv_linelists_df.drop(columns="new_d", inplace=True)
+
+    # get the correct subdistrict name
+    spv_linelists_df.loc[:, "Subdistrict"] = spv_linelists_df["Subdistrict"].apply(lambda x: x.split(" - ")[1] if len(x.split(" - ")) > 1 else x)
+    
+    ############
+    ############
+    if new_name_system:
+        # add district name back in for the merge operations when adjusting plot values 
+        spv_linelists_df.loc[:, "Subdistrict"] = spv_linelists_df['District'] + " - " + spv_linelists_df["Subdistrict"]
+   
+    ############
+    ###################################
+
     for (dist, subd), dist_subd_df in spv_linelists_df.groupby(["District", "Subdistrict"]):
         for date_col_to_use in all_lag_columns:
             logging.info(f"Setting the target column for lag calculations to {date_col_to_use}")
