@@ -5,10 +5,14 @@ import pathlib
 import logging
 import sys
 import tempfile
+import zipfile
 
 from db_utils import minio_utils
-import paramiko
-import prov_health_data_to_minio
+
+import ckan_utils
+
+BUCKET = 'covid'
+BUCKET_CLASSIFICATION = minio_utils.DataClassification.EDGE
 
 VULNERABILITY_VIEWER_SOURCE = "*-hotspots.html"
 DASHBOARD_ASSETS = "assets/*"
@@ -45,11 +49,9 @@ CASE_MAPS_SHARE_PATTERN = (
     CITY_MAP_WIDGETS_PREFIX,
 )
 
-FTP_SYNC_DIR_NAME = 'COCT_WCGH'
 SHARE_CONFIG = (
-    # Dest Dir, Patterns to match
-    (os.path.join(FTP_SYNC_DIR_NAME, "vulnerability_viewer"), VV_SHARE_PATTERNS, VV_EXCLUDE_LIST),
-    (os.path.join(FTP_SYNC_DIR_NAME, "case_maps"), CASE_MAPS_SHARE_PATTERN, VV_EXCLUDE_LIST),
+    # Dest Dataset, Dest resource name, Resource filename, Patterns to match, Patterns to exclude
+    ("vulnerability-viewer", "Vulnerability Viewer", "vulnerability_viewer.zip", VV_SHARE_PATTERNS, VV_EXCLUDE_LIST),
 )
 
 
@@ -71,8 +73,8 @@ def pull_down_covid_bucket_files(minio_access, minio_secret, patterns, exclude_p
         minio_utils._list_bucket_objects = _list_bucket_objects
 
         minio_utils.bucket_to_dir(
-            tempdir, prov_health_data_to_minio.BUCKET,
-            minio_access, minio_secret, prov_health_data_to_minio.BUCKET_CLASSIFICATION
+            tempdir, BUCKET,
+            minio_access, minio_secret, BUCKET_CLASSIFICATION
         )
         logging.debug("Sync[ed] data from COVID bucket")
 
@@ -82,30 +84,6 @@ def pull_down_covid_bucket_files(minio_access, minio_secret, patterns, exclude_p
                 remote_path = pathlib.Path(os.path.relpath(local_path, tempdir))
 
                 yield local_path, remote_path
-
-
-def ftp_mkdir_p(sftp, dir_path):
-    parent_dirs = list(reversed(dir_path.parents))[1:]
-    for path_dir in parent_dirs:
-        child_dirs = sftp.listdir(str(path_dir.parent))
-        dir_name = str(path_dir.name)
-        if dir_name not in child_dirs:
-            logging.debug(f"Creating '{dir_name}' in {path_dir.parent}")
-            dir_full_path = os.path.join(path_dir.parent, dir_name)
-            sftp_client.mkdir(dir_full_path)
-
-
-def check_update(sftp, remote_path, local_path):
-    file_list = sftp.listdir(str(remote_path.parent))
-    if str(remote_path.name) in file_list:
-        sftp_attr = sftp.stat(str(remote_path))
-        logging.debug(f"sftp_attr={sftp_attr.st_size}")
-        local_attr = paramiko.sftp_attr.SFTPAttributes.from_stat(os.stat(local_path))
-        logging.debug(f"local_attrs={local_attr.st_size}")
-
-        return sftp_attr.st_size != local_attr.st_size
-    else:
-        return True
 
 
 if __name__ == "__main__":
@@ -123,29 +101,26 @@ if __name__ == "__main__":
     secrets = json.load(open(secrets_path))
 
     # Getting SFTP client
-    logging.info("Auth[ing] with FTP server")
-    sftp_client = prov_health_data_to_minio.get_sftp_client(
-        secrets["proxy"]["username"], secrets["proxy"]["password"],
-        secrets["ftp"]["wcgh"]["username"], secrets["ftp"]["wcgh"]["password"],
-    )
-    logging.info("Auth[ed] with FTP server")
+    logging.info("G[etting] HTTP session")
+    http_session = ckan_utils.setup_http_session(secrets['proxy']['username'], secrets['proxy']['password'])
+    logging.info("G[ot] HTTP session")
 
-    for dest_dir, patterns, exclude_patterns in SHARE_CONFIG:
-        logging.info(f"looking for matches for '{dest_dir}'")
-        for local_path, remote_path in pull_down_covid_bucket_files(secrets["minio"]["edge"]["access"],
-                                                                    secrets["minio"]["edge"]["secret"],
-                                                                    patterns, exclude_patterns):
-            remote_path = pathlib.Path(os.path.join(dest_dir, remote_path))
-            logging.debug(f"{local_path} -> {remote_path}")
+    for dest_dataset, dest_resource, resource_filename, patterns, exclude_patterns in SHARE_CONFIG:
+        logging.info(f"looking for matches for '{dest_dataset}':'{dest_resource}'")
 
-            # Creating the dir, if it doesn't exist
-            ftp_mkdir_p(sftp_client, remote_path)
+        with tempfile.NamedTemporaryFile("rb+", suffix=".zip") as zipped_data_file:
+            # Creating Zip archive
+            logging.info(f"Creat[ing] zip archive for '{resource_filename}'")
+            with zipfile.ZipFile(zipped_data_file.name, "w") as zipped_data:
+                for local_path, remote_path in pull_down_covid_bucket_files(secrets["minio"]["edge"]["access"],
+                                                               secrets["minio"]["edge"]["secret"],
+                                                               patterns, exclude_patterns):
+                    logging.debug(f"Adding '{local_path}' to zip archive")
+                    zipped_data.write(local_path, arcname=remote_path)
+            logging.info(f"Creat[ed] zip archive for '{resource_filename}'")
 
-            # listing the file to see if it already exists
-            should_update = check_update(sftp_client, remote_path, local_path)
-
-            # Finally, updating the file, if necessary
-            if should_update:
-                sftp_client.put(local_path, str(remote_path))
-            else:
-                logging.warning(f"Not updating '{remote_path}' - sizes are the same")
+            logging.info("Upload[ing] to CKAN")
+            ckan_utils.upload_data_to_ckan(resource_filename, zipped_data_file,
+                                           dest_dataset, dest_resource,
+                                           secrets["ocl-ckan"]["ckan-api-key"], http_session)
+            logging.info("Upload[ed] to CKAN")

@@ -85,6 +85,9 @@ wcgh_data_fetch_operator = covid_19_data_task(WCGH_FETCH_TASK)
 WCGH_CKAN_PUSH_TASK = 'wcgh-ckan-data-push'
 wcgh_ckan_data_push_operator = covid_19_data_task(WCGH_CKAN_PUSH_TASK)
 
+DATA_PRODUCTS_CKAN_PUSH_TASK = 'data-products-ckan-push'
+data_products_ckan_push_operator = covid_19_data_task(DATA_PRODUCTS_CKAN_PUSH_TASK)
+
 SPV_COLLECT_TASK = 'spv-data-fetch'
 spv_data_fetch_operator = covid_19_data_task(SPV_COLLECT_TASK)
 
@@ -96,4 +99,5 @@ spv_adjust_munge_operator = covid_19_data_task(SPV_ADJUST_TASK)
 
 # Dependencies
 wcgh_data_fetch_operator >> wcgh_ckan_data_push_operator
+wcgh_data_fetch_operator >> data_products_ckan_push_operator
 wcgh_data_fetch_operator >> spv_data_fetch_operator >> spv_data_munge_operator >> spv_adjust_munge_operator
