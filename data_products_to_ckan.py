@@ -26,7 +26,6 @@ CT_EPI_WIDGETS = "widgets/private/ct_*"
 CCT_EPI_WIDGETS = "widgets/private/cct_*"
 MODEL_WIDGETS = "widgets/private/wc_model_*"
 LATEST_VALUES = "widgets/private/latest_values.json"
-WIDGET_SCREENSHOTS = "widgets/*.png"
 
 VV_SHARE_PATTERNS = (
     VULNERABILITY_VIEWER_SOURCE,
@@ -44,7 +43,6 @@ VV_SHARE_PATTERNS = (
 )
 VV_EXCLUDE_LIST = (
     "cpop_gt55.geojson",
-    WIDGET_SCREENSHOTS
 )
 
 CASE_MAPS_SHARE_PATTERN = (
@@ -66,7 +64,7 @@ def pull_down_covid_bucket_files(minio_access, minio_secret, patterns, exclude_p
                               for obj in minio_client.list_objects_v2(minio_bucket, recursive=True)
                               if (
                                       any(map(lambda p: fnmatch.fnmatch(obj.object_name, p), patterns)) and not
-                              any(map(lambda p: fnmatch.fnmatch(obj.object_name, p), exclude_patterns))
+                                      any(map(lambda p: fnmatch.fnmatch(obj.object_name, p), exclude_patterns))
                               )])
             logging.debug(f"object_set={', '.join(object_set)}")
 
@@ -115,9 +113,9 @@ if __name__ == "__main__":
             logging.info(f"Creat[ing] zip archive for '{resource_filename}'")
             with zipfile.ZipFile(zipped_data_file.name, "w") as zipped_data:
                 for local_path, remote_path in pull_down_covid_bucket_files(secrets["minio"]["edge"]["access"],
-                                                                            secrets["minio"]["edge"]["secret"],
-                                                                            patterns, exclude_patterns):
-                    logging.debug(f"Adding '{remote_path}' to zip archive")
+                                                               secrets["minio"]["edge"]["secret"],
+                                                               patterns, exclude_patterns):
+                    logging.debug(f"Adding '{local_path}' to zip archive")
                     zipped_data.write(local_path, arcname=remote_path)
             logging.info(f"Creat[ed] zip archive for '{resource_filename}'")
 
