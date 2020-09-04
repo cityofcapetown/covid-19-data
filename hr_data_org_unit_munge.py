@@ -86,6 +86,11 @@ def merge_df(hr_df, hr_master_df, hr_org_df):
     logging.debug(f"combined_df.shape=\n{combined_df.shape}")
     logging.debug(f"combined_df.head(5)=\n{combined_df.head(5)}")
 
+    # Setting date column to only reflect the date
+    combined_df[HR_TRANSACTION_DATE] = pandas.to_datetime(
+        combined_df[HR_TRANSACTION_DATE]
+    ).dt.date
+
     return combined_df
 
 
@@ -94,13 +99,21 @@ def _is_weekend_or_public_holiday(date):
 
 
 def smooth_combined_df(combined_df):
+    max_date = combined_df.Date.max()
+    logging.debug(f"max_date={max_date}")
+
     logging.debug(f"combined_df.shape={combined_df.shape}")
+    # First, rolling values forward by several days, clipping to the current max date
     smoothed_df = combined_df.append([
             combined_df.copy().assign(
-                Date=pandas.to_datetime(combined_df.Date) + pandas.Timedelta(days=i)
-            ).query("~Date.apply(@_is_weekend_or_public_holiday)")
+                Date=(combined_df.Date + pandas.Timedelta(days=i)).clip(upper=max_date)
+            ).query("~Date.apply(@_is_weekend_or_public_holiday) ")
             for i in range(1, SMOOTHING_THRESHOLD+1)
-    ]).drop_duplicates(subset=[HR_STAFFNUMBER, HR_TRANSACTION_DATE], keep="first")
+    # Then, only keeping the values which add something new
+    ]).drop_duplicates(
+        subset=[HR_STAFFNUMBER, HR_TRANSACTION_DATE],
+        keep="first"
+    )
     logging.debug(f"smoothed_df.shape={smoothed_df.shape}")
 
     return smoothed_df
