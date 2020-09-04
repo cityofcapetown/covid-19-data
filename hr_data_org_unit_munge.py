@@ -5,6 +5,7 @@ import sys
 import tempfile
 
 from db_utils import minio_utils
+import holidays
 import pandas
 
 BUCKET = 'covid'
@@ -31,6 +32,11 @@ HR_ORG_UNIT_COLUMNS = [
 
 HR_ORG_UNIT_STATUSES = "data/private/business_continuity_org_unit_statuses"
 
+SMOOTHING_THRESHOLD = 4
+ZA_HOLIDAYS = holidays.CountryHoliday("ZA", prov="WC")
+
+HR_ORG_UNIT_SMOOTHED_STATUSES = "data/private/business_continuity_org_unit_smoothed_statuses"
+
 
 def get_data_df(filename, minio_access, minio_secret):
     with tempfile.NamedTemporaryFile() as temp_data_file:
@@ -47,6 +53,10 @@ def get_data_df(filename, minio_access, minio_secret):
 
         logging.debug(f"Reading in raw data from '{temp_data_file.name}'...")
         data_df = pandas.read_csv(temp_data_file)
+        data_df.drop([
+            col for col in data_df.columns
+            if "Unnamed" in col
+        ], axis="columns", inplace=True)
 
     return data_df
 
@@ -79,6 +89,23 @@ def merge_df(hr_df, hr_master_df, hr_org_df):
     return combined_df
 
 
+def _is_weekend_or_public_holiday(date):
+    return (date.weekday in {5, 6}) or (date in ZA_HOLIDAYS)
+
+
+def smooth_combined_df(combined_df):
+    logging.debug(f"combined_df.shape={combined_df.shape}")
+    smoothed_df = combined_df.append([
+            combined_df.copy().assign(
+                Date=pandas.to_datetime(combined_df.Date) + pandas.Timedelta(days=i)
+            ).query("~Date.apply(@_is_weekend_or_public_holiday)")
+            for i in range(1, SMOOTHING_THRESHOLD+1)
+    ]).drop_duplicates(subset=[HR_STAFFNUMBER, HR_TRANSACTION_DATE], keep="first")
+    logging.debug(f"smoothed_df.shape={smoothed_df.shape}")
+
+    return smoothed_df
+
+
 def get_org_unit_df(combined_df):
     # We only care about dates
     combined_df[HR_TRANSACTION_DATE] = pandas.to_datetime(
@@ -95,12 +122,13 @@ def get_org_unit_df(combined_df):
 
     groupby_cols = [*HR_ORG_UNIT_COLUMNS, HR_TRANSACTION_DATE]
     flattened_org_unit_df = (
-        # select the most common value in the evaluation col
-        filled_df.groupby(groupby_cols, sort=False)
+        filled_df[[*groupby_cols, HR_TRANSACTION_EVALUATION, HR_LOCATION, HR_CATEGORIES]].groupby(groupby_cols, sort=False)
             .apply(
             lambda df: pandas.DataFrame({
+                # select the most common value in the evaluation and location cols
                 HR_TRANSACTION_EVALUATION: df[HR_TRANSACTION_EVALUATION].mode(),
                 HR_LOCATION: df[HR_LOCATION].mode(),
+                # do a count of the different statuses - actually quite sneaky data manipulation
                 **df[HR_CATEGORIES].value_counts().to_dict()
             })
         )
@@ -160,12 +188,11 @@ if __name__ == "__main__":
     merged_df = merge_df(hr_transactional_df, hr_master_df, hr_org_unit_master_df)
     logging.info("Merg[ed] Transactional and Master HR data, as well as Org Unit data")
 
-    logging.info("Dedup[ing] HR form data")
+    logging.info("Assembl[ing] Org data df")
     org_unit_df = get_org_unit_df(merged_df)
-    logging.info("Dedup[ed] HR form data")
+    logging.info("Assembl[ed] Org data df")
 
-    # Writing result out
-    logging.info("Writing cleaned HR Form DataFrame to Minio...")
+    logging.info("Writing cleaned Org DataFrame to Minio...")
     minio_utils.dataframe_to_minio(org_unit_df, BUCKET,
                                    secrets["minio"]["edge"]["access"],
                                    secrets["minio"]["edge"]["secret"],
@@ -173,4 +200,22 @@ if __name__ == "__main__":
                                    filename_prefix_override=HR_ORG_UNIT_STATUSES,
                                    data_versioning=False,
                                    file_format="csv")
+
+    logging.info("Smooth[ing] Combined data")
+    smoothed_hr_df = smooth_combined_df(merged_df)
+    logging.info("Smooth[ed] Combined data")
+
+    logging.info("Assembl[ing] Smoothed org data df")
+    smoothed_org_unit_df = get_org_unit_df(smoothed_hr_df)
+    logging.info("Assembl[ed] Smoothed org data df")
+
+    logging.info("Writing smoothed Org DataFrame to Minio...")
+    minio_utils.dataframe_to_minio(smoothed_org_unit_df, BUCKET,
+                                   secrets["minio"]["edge"]["access"],
+                                   secrets["minio"]["edge"]["secret"],
+                                   minio_utils.DataClassification.EDGE,
+                                   filename_prefix_override=HR_ORG_UNIT_SMOOTHED_STATUSES,
+                                   data_versioning=False,
+                                   file_format="csv")
+
     logging.info("...Done!")
