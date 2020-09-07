@@ -106,7 +106,7 @@ def smooth_combined_df(combined_df):
     # First, rolling values forward by several days, clipping to the current max date
     smoothed_df = combined_df.append([
             combined_df.copy().assign(
-                Date=(combined_df.Date + pandas.Timedelta(days=i)).clip(upper=max_date)
+                Date=(pandas.to_datetime(combined_df.Date) + pandas.Timedelta(days=i)).clip(upper=max_date)
             ).query("~Date.apply(@_is_weekend_or_public_holiday) ")
             for i in range(1, SMOOTHING_THRESHOLD+1)
     # Then, only keeping the values which add something new
