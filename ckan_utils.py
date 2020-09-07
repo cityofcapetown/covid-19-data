@@ -7,6 +7,10 @@ import requests
 CITY_PROXY_HOST = "internet.capetown.gov.za:8080"
 
 CHECKSUM_FIELD = "checksum"
+RESOURCES_FIELD = 'resources'
+
+NAME_FIELD = 'name'
+URL_FIELD = 'url'
 
 OCL_CKAN_DOMAIN = 'https://cct.opencitieslab.org'
 RESOURCE_CREATE_PATH = 'api/action/resource_create'
@@ -169,3 +173,27 @@ def upload_data_to_ckan(filename, data_file, dataset_name, resource_name, ckan_a
         logging.warning(f"Assuming this is a graceful shutdown!")
 
     return True
+
+
+def download_data_from_ckan(dataset_name, ckan_api_key, session, resource_name=None) -> (str, bytes):
+    dataset_metadata = _get_dataset_metadata(dataset_name, ckan_api_key, session)
+
+    assert RESOURCES_FIELD in dataset_metadata, f"No resources found in '{dataset_name}'!"
+
+    resources_metadata = (
+        resource_metadata
+        for resource_metadata in dataset_metadata[RESOURCES_FIELD]
+        if (resource_name and resource_metadata[NAME_FIELD] == resource_name) or resource_name is None
+    )
+
+    for resource_metadata in resources_metadata:
+        logging.debug(f"Downloading '{resource_metadata[NAME_FIELD]}'...")
+        resp = session.get(
+            resource_metadata[URL_FIELD],
+            headers = {"X-CKAN-API-Key": ckan_api_key},
+        )
+        assert  resp.status_code == 200
+        logging.debug(f"Downloaded '{resource_metadata[NAME_FIELD]}'...")
+        resource_data = resp.content
+
+        yield resource_metadata[NAME_FIELD], resource_data

@@ -9,14 +9,8 @@ import urllib.parse
 from db_utils import minio_utils
 import pandas
 import requests
-from requests_ntlm import HttpNtlmAuth
-from shareplum import Site
 
-
-CITY_DOMAIN = "CAPETOWN"
-CITY_PROXY = "internet.capetown.gov.za:8080"
-PROXY_ENV_VARS = ["http_proxy", "https_proxy"]
-PROXY_ENV_VARS = PROXY_ENV_VARS + list(map(lambda x: x.upper(), PROXY_ENV_VARS))
+import sharepoint_utils
 
 SP_DOMAIN = 'http://ctapps.capetown.gov.za'
 SP_SITE = '/sites/HRCovidCapacity/'
@@ -51,30 +45,6 @@ BATCH_COLUMN_MAP = {
 BUCKET = 'covid'
 HR_BACKUP_PREFIX = "data/staging/hr_data_backup/"
 FILENAME_PATH = "data/private/hr_data_complete"
-
-
-def get_auth_objects(username, password):
-    auth = HttpNtlmAuth(f'{CITY_DOMAIN}\\{username}', password)
-    proxy_string = f'http://{username}:{password}@{CITY_PROXY}'
-    proxy_dict = {
-        "http": proxy_string,
-        "https": proxy_string
-    }
-
-    return auth, proxy_string, proxy_dict
-
-
-def set_env_proxy(proxy_string):
-    for proxy_env_var in PROXY_ENV_VARS:
-        logging.debug(f"Setting '{proxy_env_var}'")
-        os.environ[proxy_env_var] = proxy_string
-
-
-def get_sp_site(sp_domain, sp_site, auth):
-    site_string = urllib.parse.urljoin(sp_domain, sp_site)
-    site = Site(site_string, auth=auth)
-
-    return site
 
 
 def get_xml_list_dfs(site, list_name):
@@ -180,18 +150,6 @@ def get_excel_list_dfs(site_list, auth, proxy_dict, minio_access, minio_secret):
                 continue
 
 
-def filter_site_list(site_list, file_name_pattern):
-    file_list_dicts = site_list.GetListItems()
-
-    file_list = (
-        file_dict for file_dict in file_list_dicts
-        if file_name_pattern in file_dict["Name"].lower()
-    )
-
-    for file_dict in file_list:
-        yield file_dict
-
-
 def get_combined_list_df(site, auth, proxy_dict, minio_access, minio_secret):
     # Get XML files
     xml_list_df = get_xml_list_dfs(site, SP_XML_LIST_NAME)
@@ -207,8 +165,8 @@ def get_combined_list_df(site, auth, proxy_dict, minio_access, minio_secret):
     batch_list_dfs = (
         batch_df[BATCH_COLUMN_MAP.keys()].rename(BATCH_COLUMN_MAP, axis='columns')
         for batch_list in SP_BATCH_LIST_NAMES
-        for batch_df in get_excel_list_dfs(filter_site_list(site.List(batch_list),
-                                                            BATCH_FILE_PATTERN_FILTER[batch_list]),
+        for batch_df in get_excel_list_dfs(sharepoint_utils.filter_site_list(site.List(batch_list),
+                                                                             BATCH_FILE_PATTERN_FILTER[batch_list]),
                                            auth, proxy_dict, minio_access, minio_secret)
     )
 
@@ -237,14 +195,14 @@ if __name__ == "__main__":
     secrets = json.load(open(secrets_path))
 
     logging.info("Setting up auth...")
-    sp_auth, city_proxy_string, city_proxy_dict = get_auth_objects(
+    sp_auth, city_proxy_string, city_proxy_dict = sharepoint_utils.get_auth_objects(
         secrets["proxy"]["username"],
         secrets["proxy"]["password"]
     )
-    set_env_proxy(city_proxy_string)
+    sharepoint_utils.set_env_proxy(city_proxy_string)
 
     logging.info("Getting combined df...")
-    sp_site = get_sp_site(SP_DOMAIN, SP_SITE, sp_auth)
+    sp_site = sharepoint_utils.get_sp_site(SP_DOMAIN, SP_SITE, sp_auth)
     combined_df = get_combined_list_df(sp_site, sp_auth, city_proxy_dict,
                                        secrets["minio"]["edge"]["access"], secrets["minio"]["edge"]["secret"])
 
