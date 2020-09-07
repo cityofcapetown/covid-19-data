@@ -64,7 +64,7 @@ def covid_19_data_task(task_name, task_kwargs={}):
     """Factory for k8sPodOperator"""
     name = "{}-{}".format(dag_name, task_name)
     run_args = {**k8s_run_args.copy(), **task_kwargs}
-    run_cmd = "bash -c '{} && \"$COVID_19_DATA_DIR\"/bin/{}.sh'".format(startup_cmd, task_name)
+    run_cmd = "bash -c '{} && \"$COVID_19_DATA_DIR\"/bin/{}.sh'".format(startup_cmd, name)
 
     operator = KubernetesPodOperator(
         cmds=["bash", "-cx"],
