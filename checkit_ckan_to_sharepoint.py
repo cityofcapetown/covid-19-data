@@ -3,6 +3,8 @@ import logging
 import os
 import sys
 
+from shareplum import site
+
 import ckan_utils
 import sharepoint_utils
 
@@ -43,6 +45,6 @@ if __name__ == '__main__':
         sharepoint_utils.set_env_proxy(city_proxy_string)
 
         logging.info("Wr[iting] data to sharepoint...")
-        sp_site = sharepoint_utils.get_sp_site(SP_DOMAIN, SP_SITE, sp_auth)
-        sharepoint_utils.put_sp_file(sp_site, CHECKIT_FOLDER, CKAN_FILENAME, file_data)
+        sp_site = sharepoint_utils.get_sp_site(SP_DOMAIN, SP_SITE, sp_auth, )
+        sharepoint_utils.put_sp_file(sp_site, CHECKIT_FOLDER, CKAN_FILENAME, file_data, site.Version.v2016)
         logging.info("Wr[ote] data to sharepoint...")

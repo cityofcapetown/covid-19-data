@@ -31,9 +31,10 @@ def set_env_proxy(proxy_string) -> None:
         os.environ[proxy_env_var] = proxy_string
 
 
-def get_sp_site(sp_domain, sp_site, auth) -> Site:
+def get_sp_site(sp_domain, sp_site, auth, version=None) -> Site:
     site_string = urllib.parse.urljoin(sp_domain, sp_site)
-    site = Site(site_string, auth=auth, version=Version.v2016)
+    sp_version = version if version else Version.v2007
+    site = Site(site_string, auth=auth, version=sp_version)
 
     return site
 

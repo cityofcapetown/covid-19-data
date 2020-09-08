@@ -4,6 +4,8 @@ import os
 import sys
 import tempfile
 
+from shareplum import site
+
 import checkit_ckan_to_sharepoint
 import ckan_utils
 import sharepoint_utils
@@ -35,7 +37,7 @@ if __name__ == '__main__':
     logging.info("G[etting] data from sharepoint...")
     sp_site = sharepoint_utils.get_sp_site(checkit_ckan_to_sharepoint.SP_DOMAIN,
                                            checkit_ckan_to_sharepoint.SP_SITE,
-                                           sp_auth)
+                                           sp_auth, site.Version.v2016)
     sp_data = sharepoint_utils.get_sp_file(sp_site, checkit_ckan_to_sharepoint.CHECKIT_FOLDER, CHECKIT_OUTPUT_FILE)
     logging.info("G[ot] data from sharepoint...")
 
