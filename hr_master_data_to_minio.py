@@ -10,6 +10,7 @@ from db_utils import minio_utils
 
 import exchange_utils
 import hr_data_to_minio
+import sharepoint_utils
 
 SUBJECT_FILTER = 'CITY ORG UNIT MASTER DATA'
 FILENAMES = {"CITY ORG UNIT MASTER DATA.xlsx"}
@@ -64,11 +65,11 @@ if __name__ == "__main__":
     account = exchange_utils.setup_exchange_account(secrets["proxy"]["username"],
                                                     secrets["proxy"]["password"])
     # Sharepoint auth
-    sp_auth, city_proxy_string, city_proxy_dict = hr_data_to_minio.get_auth_objects(
+    sp_auth, city_proxy_string, city_proxy_dict = sharepoint_utils.get_auth_objects(
         secrets["proxy"]["username"],
         secrets["proxy"]["password"]
     )
-    hr_data_to_minio.set_env_proxy(city_proxy_string)
+    sharepoint_utils.set_env_proxy(city_proxy_string)
     logging.info("Set[up] auth")
 
     logging.info("Gett[ing] Master Data from Emails")
@@ -110,7 +111,7 @@ if __name__ == "__main__":
     logging.info("G[ot] Master Data from Emails")
 
     logging.info("Gett[ing] Master Data from Sharepoint")
-    sp_site = hr_data_to_minio.get_sp_site(
+    sp_site = sharepoint_utils.get_sp_site(
         hr_data_to_minio.SP_DOMAIN,
         hr_data_to_minio.SP_SITE,
         sp_auth
