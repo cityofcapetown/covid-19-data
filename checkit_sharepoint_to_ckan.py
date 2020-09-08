@@ -49,7 +49,7 @@ if __name__ == '__main__':
 
         http_session = ckan_utils.setup_http_session(secrets['proxy']['username'], secrets['proxy']['password'])
         ckan_utils.upload_data_to_ckan(
-            temp_data_file.name, temp_data_file,
+            CHECKIT_OUTPUT_FILE, temp_data_file,
             checkit_ckan_to_sharepoint.CKAN_DATASET, CHECKIT_OUTPUT_FILE,
             secrets["ocl-ckan"]["ckan-api-key"], http_session
         )
