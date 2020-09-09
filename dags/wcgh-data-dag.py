@@ -94,6 +94,13 @@ spv_data_munge_operator = covid_19_data_task(SPV_LAG_TASK)
 SPV_ADJUST_TASK = 'spv-adjust-munge'
 spv_adjust_munge_operator = covid_19_data_task(SPV_ADJUST_TASK)
 
+SPV_SUBPLACE_TASK = 'spv-subplace-munge'
+spv_subplace_munge_operator = covid_19_data_task(SPV_SUBPLACE_TASK)
+
+SPV_CKAN_TASK = 'spv-subplace-ckan-push'
+spv_ckan_push_operator = covid_19_data_task(SPV_CKAN_TASK)
+
 # Dependencies
 wcgh_data_fetch_operator >> wcgh_ckan_data_push_operator
 wcgh_data_fetch_operator >> spv_data_fetch_operator >> spv_data_munge_operator >> spv_adjust_munge_operator
+wcgh_data_fetch_operator >> spv_subplace_munge_operator >> spv_ckan_push_operator
