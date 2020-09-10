@@ -19,9 +19,12 @@ PROXY_ENV_VARS = PROXY_ENV_VARS + list(map(lambda x: x.upper(), PROXY_ENV_VARS))
 SENDER_FILTER = "VanRooyen"
 DATA_FILE_LOOKUPS = {
     "Documents/ZEMP_Q0001_V7_BICS_COVID_AUTO_00000.htm": ("ANALYSIS_ia_pt_a", "zemp_q0001_v7_bics_covid_auto"),
+    "Documents/ZEMP_Q0001_V7_BICS_COVID_AUTO1_00000.htm": ("ANALYSIS_ia_pt_a", "zemp_q0001_v7_bics_covid_auto"),
     #'Documents/ZHR_TIME_ATTEND_EMP_3_AUTO_00000.htm': ("ANALYSIS_ia_pt_a", "zhr_time_attend_emp_3_auto"),
     "Documents/ZATT_2002_AUTO_00000.htm": ("ANALYSIS_ia_pt_a", "zatt_2002_auto"),
+    "Documents/ZATT_2002_AUTO1_00000.htm": ("ANALYSIS_ia_pt_a", "zatt_2002_auto"),
     'Documents/ZEMP_Q0001_V7_BICS_DASH_AUTO_00000.htm': ("ANALYSIS_ia_pt_a", "zemp_q0001_v7_bics_dash_auto"),
+    'Documents/ZEMP_Q0001_V7_BICS_DASH_AUTO1_00000.htm': ("ANALYSIS_ia_pt_a", "zemp_q0001_v7_bics_dash_auto"),
 }
 
 BUCKET = 'covid'
@@ -57,8 +60,11 @@ def get_attachment_file_df(data_file):
                 f"I don't couldn't find a file I know about in the {data_file}'s list"
             )
             logging.debug(
-                f"zip_file_list=\n{pprint.pformat(zip_file_list)}"
+                f"len(zip_file_list)={len(zip_file_list)}"
             )
+            # logging.debug(
+            #     f"zip_file_list=\n{pprint.pformat(zip_file_list)}"
+            # )
             return data_file_path, None
 
         with zip_data_file.open(data_file_path) as html_data_file:
