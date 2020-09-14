@@ -99,7 +99,7 @@ def _is_weekend_or_public_holiday(date):
 
 
 def smooth_combined_df(combined_df):
-    max_date = combined_df.Date.max()
+    max_date = pandas.to_datetime(combined_df.Date).max()
     logging.debug(f"max_date={max_date}")
 
     logging.debug(f"combined_df.shape={combined_df.shape}")
