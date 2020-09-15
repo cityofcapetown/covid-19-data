@@ -117,11 +117,13 @@ if __name__ == "__main__":
     
     # get the aggregated counts
     logging.info(f"Aggregating counts by suburb names")
-#     suburb_cases = spv_latest.groupby([DIAG_DATE])[CUST_AREA].value_counts().reset_index(name="count")
-    suburb_cases = spv_latest.groupby([DIAG_DATE, CUST_AREA_CODE, CUST_AREA])[CUST_AREA_CODE].agg(
-        count = (CUST_AREA, "size"),
-    ).reset_index()
     
+    # can't use namedagg because pandas version is < v0.25 
+    logging.debug(f"Pandas version is: {pd.__version__}")
+    suburb_cases = spv_latest.groupby([DIAG_DATE, CUST_AREA_CODE, CUST_AREA])[CUST_AREA_CODE].agg(
+        [("count", "size")],
+    ).reset_index()
+   
     # annotate whether the area is a Mainplace or Subplace
     suburb_cases.loc[:, CUST_AREA_TYPE] = suburb_cases[CUST_AREA_CODE].apply(lambda x: "Mainplace" if x in mainplace_codes else "Subplace")
     # convert the float to int
