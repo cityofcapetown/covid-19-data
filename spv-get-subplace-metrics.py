@@ -119,7 +119,7 @@ if __name__ == "__main__":
     logging.info(f"Aggregating counts by suburb names")
 #     suburb_cases = spv_latest.groupby([DIAG_DATE])[CUST_AREA].value_counts().reset_index(name="count")
     suburb_cases = spv_latest.groupby([DIAG_DATE, CUST_AREA_CODE, CUST_AREA])[CUST_AREA_CODE].agg(
-        count = (f"{CUST_AREA}", "size"),
+        count = (CUST_AREA, "size"),
     ).reset_index()
     
     # annotate whether the area is a Mainplace or Subplace
