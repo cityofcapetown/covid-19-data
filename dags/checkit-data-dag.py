@@ -86,3 +86,9 @@ checkit_data_fetch_operator = covid_19_data_task(CHECKIT_FETCH_TASK)
 
 WCGH_CKAN_PUSH_TASK = 'push'
 checkit_ckan_data_push_operator = covid_19_data_task(WCGH_CKAN_PUSH_TASK)
+
+WCGH_CKAN_LOOKUP_TASK = 'lookup'
+checkit_ckan_lookup_operator = covid_19_data_task(WCGH_CKAN_LOOKUP_TASK)
+
+# Dependencies
+checkit_ckan_data_push_operator >> checkit_ckan_lookup_operator
