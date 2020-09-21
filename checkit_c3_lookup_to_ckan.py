@@ -106,7 +106,7 @@ if __name__ == '__main__':
     logging.info("Merg[ed] C3 and Checkit data")
 
     logging.info("Wr[iting] data to CKAN...")
-    with tempfile.NamedTemporaryFile("r", suffix=".csv") as temp_data_file:
+    with tempfile.NamedTemporaryFile("rb", suffix=".csv") as temp_data_file:
         merged_df.to_csv(temp_data_file.name)
 
         http_session = ckan_utils.setup_http_session(secrets['proxy']['username'], secrets['proxy']['password'])
