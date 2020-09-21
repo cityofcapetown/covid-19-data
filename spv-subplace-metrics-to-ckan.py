@@ -88,11 +88,12 @@ if __name__ == "__main__":
             data_file, 
             DATASET_NAME, 
             RESOURCE_NAME, 
-            secrets["ocl-ckan"]["ckan-api-key"],
+            secrets["ocl-ckan"]["ckan-api-key"], 
+#             secrets["my-ocl-ckan"]["ckan-api-key"],
             http_session
         )
     
-        assert isinstance(result, ckan_utils.CkanUploadResult), f"Upload of {RESOURCE_NAME} to {DATASET_NAME} failed!"
+    assert result, f"Upload of {RESOURCE_NAME} to {DATASET_NAME} failed!"
     
     logging.info(f"Upload[ed] {RESOURCE_NAME} to {DATASET_NAME}")
 
