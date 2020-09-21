@@ -1,3 +1,4 @@
+import enum
 import hashlib
 import mimetypes
 import os
@@ -16,6 +17,12 @@ OCL_CKAN_DOMAIN = 'https://cct.opencitieslab.org'
 RESOURCE_CREATE_PATH = 'api/action/resource_create'
 RESOURCE_UPDATE_PATH = 'api/action/resource_update'
 PACKAGE_LOOKUP_PATH = 'api/action/package_show'
+
+
+class CkanUploadResult(enum.Enum):
+    NEW_UPLOAD = "new_upload"
+    UPDATE = "update"
+    SKIP = "skipped"
 
 
 def setup_http_session(proxy_username, proxy_password) -> requests.Session:
@@ -96,7 +103,7 @@ def _generate_checksum(datafile) -> str:
     return md5sum
 
 
-def upload_data_to_ckan(filename, data_file, dataset_name, resource_name, ckan_api_key, session) -> bool:
+def upload_data_to_ckan(filename, data_file, dataset_name, resource_name, ckan_api_key, session) -> CkanUploadResult:
     """Uploads data as a resource to a CKAN dataset. Does so opportunistically
     Assumes that the dataset exists
 
@@ -138,6 +145,7 @@ def upload_data_to_ckan(filename, data_file, dataset_name, resource_name, ckan_a
             "mimetype": mimetype,
             CHECKSUM_FIELD: checksum
         }
+        result = CkanUploadResult.NEW_UPLOAD
     # Updating the resource, because the checksum is different
     elif checksum != dataset_resource_lookup[resource_name][CHECKSUM_FIELD]:
         logging.debug(f"Resource '{resource_name}' exists in '{dataset_name}', "
@@ -150,12 +158,13 @@ def upload_data_to_ckan(filename, data_file, dataset_name, resource_name, ckan_a
             "id": resource_id,
             CHECKSUM_FIELD: checksum
         }
+        result = CkanUploadResult.UPDATE
     # Do nothing
     else:
         resource_id = dataset_resource_lookup[resource_name]['id']
         logging.debug(f"Skipping call to CKAN, as there isn't new data (checksum is '{checksum}', "
                       f"id is '{resource_id}')")
-        return True
+        return CkanUploadResult.SKIP
 
     try:
         # Uploading the resource
@@ -172,7 +181,7 @@ def upload_data_to_ckan(filename, data_file, dataset_name, resource_name, ckan_a
         logging.error(f"Received proxy error when uploading data: '{e}'")
         logging.warning(f"Assuming this is a graceful shutdown!")
 
-    return True
+    return result
 
 
 def download_data_from_ckan(dataset_name, ckan_api_key, session, resource_name=None) -> (str, bytes):
@@ -190,9 +199,9 @@ def download_data_from_ckan(dataset_name, ckan_api_key, session, resource_name=N
         logging.debug(f"Downloading '{resource_metadata[NAME_FIELD]}'...")
         resp = session.get(
             resource_metadata[URL_FIELD],
-            headers = {"X-CKAN-API-Key": ckan_api_key},
+            headers={"X-CKAN-API-Key": ckan_api_key},
         )
-        assert  resp.status_code == 200
+        assert resp.status_code == 200
         logging.debug(f"Downloaded '{resource_metadata[NAME_FIELD]}'...")
         resource_data = resp.content
 

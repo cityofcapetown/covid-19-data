@@ -72,7 +72,7 @@ if __name__ == "__main__":
         logging.info(f"Upload[ing] {resource_name} to {dataset_name}")
         result = ckan_utils.upload_data_to_ckan(filename, data_file, dataset_name, resource_name,
                                                 secrets["ocl-ckan"]["ckan-api-key"], http_session)
-        assert result, f"Upload of {resource_name} to {dataset_name} failed!"
+        assert isinstance(result, ckan_utils.CkanUploadResult), f"Upload of {resource_name} to {dataset_name} failed!"
         logging.info(f"Upload[ed] {resource_name} to {dataset_name}")
 
     logging.info("...Done")
