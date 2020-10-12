@@ -71,7 +71,7 @@ def covid_19_data_task(task_name, task_kwargs={}):
         name=name,
         task_id=name,
         dag=dag,
-        execution_timeout=timedelta(hours=1),
+        execution_timeout=timedelta(hours=1.5),
         **run_args
     )
 
