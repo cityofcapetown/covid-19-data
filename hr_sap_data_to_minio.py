@@ -17,6 +17,8 @@ PROXY_ENV_VARS = ["http_proxy", "https_proxy"]
 PROXY_ENV_VARS = PROXY_ENV_VARS + list(map(lambda x: x.upper(), PROXY_ENV_VARS))
 
 SENDER_FILTER = "VanRooyen"
+DAYS_LOOKBACK = 14
+FILES_PER_DAY = 6
 DATA_FILE_LOOKUPS = {
     "Documents/ZEMP_Q0001_V7_BICS_COVID_AUTO_00000.htm": ("ANALYSIS_ia_pt_a", "zemp_q0001_v7_bics_covid_auto"),
     "Documents/ZEMP_Q0001_V7_BICS_COVID_AUTO1_00000.htm": ("ANALYSIS_ia_pt_a", "zemp_q0001_v7_bics_covid_auto"),
@@ -83,7 +85,10 @@ def get_attachment_file_df(data_file):
 def generate_raw_doc_dfs(items) -> dict:
     """Generates a dictionary of different file types -> dataframes of data"""
     email_data_dfs = {}
-    for data_file in exchange_utils.get_attachment_files(items):
+
+    most_recent_file_numbers = FILES_PER_DAY * DAYS_LOOKBACK
+    logging.debug(f"Looking back at {most_recent_file_numbers} files")
+    for data_file in exchange_utils.get_attachment_files(items, most_recent_count=most_recent_file_numbers):
         # backing up data file
         # Calculating checksum
         with open(data_file, "rb") as raw_data_file:
