@@ -2,7 +2,6 @@ import hashlib
 import json
 import logging
 import os
-import pprint
 import sys
 import zipfile
 
@@ -17,7 +16,7 @@ PROXY_ENV_VARS = ["http_proxy", "https_proxy"]
 PROXY_ENV_VARS = PROXY_ENV_VARS + list(map(lambda x: x.upper(), PROXY_ENV_VARS))
 
 SENDER_FILTER = "VanRooyen"
-DAYS_LOOKBACK = 14
+DAYS_LOOKBACK = 7
 FILES_PER_DAY = 6
 DATA_FILE_LOOKUPS = {
     "Documents/ZEMP_Q0001_V7_BICS_COVID_AUTO_00000.htm": ("ANALYSIS_ia_pt_a", "zemp_q0001_v7_bics_covid_auto"),
