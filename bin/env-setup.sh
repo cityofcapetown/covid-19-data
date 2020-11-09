@@ -4,7 +4,7 @@ echo "=> Setting up City Service Analysis Environment <="
 echo ""
 
 DB_UTILS_LOCATION=https://ds2.capetown.gov.za/db-utils
-DB_UTILS_PKG=db_utils-0.3.2-py2.py3-none-any.whl
+DB_UTILS_PKG=db_utils-0.3.6-py2.py3-none-any.whl
 TMP=/tmp/
 
 nslookup ds2.capetown.gov.za > /dev/null
