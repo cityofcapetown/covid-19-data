@@ -39,6 +39,8 @@ SERVICE_STANDARD_MEASURES = [
 
 HEX_RESOLUTION = 3
 
+ISO8601_DATE_FORMAT = "%Y-%m-%d"
+
 COVID_BUCKET = "covid"
 BUCKET_CLASSIFICATION = minio_utils.DataClassification.EDGE
 SERVICE_DELIVERY_PREFIX = "data/private/business_continuity_service_delivery"
@@ -72,6 +74,8 @@ def _compute_weighted_average(day_df):
 
 
 def _compute_service_standard(group_df):
+    group_df[DATE_COL] = pandas.to_datetime(group_df[DATE_COL], format=ISO8601_DATE_FORMAT)
+
     pivot_df = group_df.pivot(
         index=[DATE_COL, HEX_RESOLUTION_COL, HEX_INDEX_COL], columns=MEASURE_COL, values=VALUE_COL
     ).fillna(0)
@@ -107,6 +111,8 @@ def despatialise(fact_df):
         [col for col in ss_filtered_df.columns
          if col not in (HEX_RESOLUTION_COL,  DATE_COL, HEX_INDEX_COL, MEASURE_COL, VALUE_COL)]
     ).apply(_compute_service_standard).reset_index()
+
+    ss_groupby_df[DATE_COL] = ss_groupby_df[DATE_COL].dt.strftime(ISO8601_DATE_FORMAT)
     ss_groupby_df[MEASURE_COL] = SERVICE_STANDARD_MEASURE
 
     logging.debug(f"ss_groupby_df.shape={ss_groupby_df.shape}")
