@@ -53,11 +53,12 @@ def get_fact_dataset(fact_bucket, minio_access, minio_secret):
         minio_secret=minio_secret,
         data_classification=FACT_CLASSIFICATION,
         use_cache=True
-    )[[DATE_COL, HEX_INDEX_COL, HEX_RESOLUTION_COL, FEATURE_TYPE_COL, FEATURE_COL, MEASURE_COL, VALUE_COL]]
+    )
+
     logging.debug(f"{fact_bucket}.shape={df.shape}")
     logging.debug(f"{fact_bucket}.columns={df.columns}")
 
-    return df
+    return df[[DATE_COL, HEX_INDEX_COL, HEX_RESOLUTION_COL, FEATURE_TYPE_COL, FEATURE_COL, MEASURE_COL, VALUE_COL]]
 
 
 def _compute_weighted_average(day_df):
