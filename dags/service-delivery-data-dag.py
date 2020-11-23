@@ -79,4 +79,7 @@ def covid_19_data_task(task_name, task_kwargs={}):
 
 # Defining tasks
 DATA_FETCH_TASK = 'service-delivery-ts-generate'
+DATA_MUNGE_TASK = "service-delivery-metrics-munge"
+
 data_fetch_operator = covid_19_data_task(DATA_FETCH_TASK)
+data_munge_operator = covid_19_data_task(DATA_MUNGE_TASK)
