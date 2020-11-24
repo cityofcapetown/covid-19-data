@@ -121,16 +121,16 @@ if __name__ == "__main__":
     logging.info("Merg[ed] to annotations")
 
     logging.info("Generat[ing] request code annotation name")
-    res3_pivot_df_expand.loc[:, "code"] = res3_pivot_df_expand['Code'] + " (" + res3_pivot_df_expand[
+    res3_pivot_df_expand.loc[:, "Code"] = res3_pivot_df_expand['Code'] + " (" + res3_pivot_df_expand[
         'CodeGroupID'] + "-" + res3_pivot_df_expand['CodeID'] + ")"
     logging.info("Generat[ed] request code annotation name")
 
     logging.info("Pivot[ing] dataframe")
     res3_pivot_df = res3_pivot_df_expand.groupby(
-        ["date", "directorate", "department", "code", "measure"], as_index=False).sum().pivot_table(
+        ["date", "directorate", "department", "Code", "measure"], as_index=False).sum().pivot_table(
         columns="measure",
         values="value",
-        index=["date", "directorate", "department", "code"]
+        index=["date", "directorate", "department", "Code"]
     )
     res3_pivot_df.sort_values("date", inplace=True)
     logging.info("Pivot[ed] dataframe")
@@ -139,7 +139,7 @@ if __name__ == "__main__":
     res3_pivot_df["backlog"] = res3_pivot_df["opened_count"] - res3_pivot_df["closed_count"]
     logging.info("Add[ed] backlog calc")
     logging.info("Add[ing] backlog rolling sum calc")
-    backlog_df = res3_pivot_df.groupby(["directorate", "department", "code"]).apply(
+    backlog_df = res3_pivot_df.groupby(["directorate", "department", "Code"]).apply(
         lambda df: df.rolling("180D", on=df.index.get_level_values('date')).sum()
     ).reset_index()
     logging.info("Add[ed] backlog rolling sum calc")
@@ -153,12 +153,12 @@ if __name__ == "__main__":
     stats_filt = backlog_df.query("date == @latest_date_dept").copy()
     logging.info("Filter[ed] metrics to latest data date")
     logging.info("Calculat[ing] total requests to date")
-    opened_total = res3_pivot_df.query("date >= @START_DATE").groupby(["directorate", "department", "code"]).agg(
+    opened_total = res3_pivot_df.query("date >= @START_DATE").groupby(["directorate", "department", "Code"]).agg(
         total_opened=("opened_count", "sum")
     ).reset_index()
     logging.info("Calculat[ed] total requests to date")
     logging.info("Merg[ing] metrics and total requests")
-    combined = pd.merge(stats_filt, opened_total, on=["directorate", "department", "code"], how="left", validate="1:1")
+    combined = pd.merge(stats_filt, opened_total, on=["directorate", "department", "Code"], how="left", validate="1:1")
     logging.info("Merg[ed] metrics and total requests")
     logging.info("Add[ing] color field")
     combined["dept_color"] = combined["department"].apply(lambda x: DEPARTMENTS_CLR_DICT[x])
