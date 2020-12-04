@@ -5,6 +5,7 @@ script to calculate backlog % close and total requests opened metrics for city a
 __author__ = "Colin Anthony"
 
 # base imports
+from datetime import timedelta
 import json
 import logging
 import os
@@ -138,24 +139,29 @@ if __name__ == "__main__":
     logging.info("Add[ing] backlog calc")
     res3_pivot_df["backlog"] = res3_pivot_df["opened_count"] - res3_pivot_df["closed_count"]
     logging.info("Add[ed] backlog calc")
+    
     logging.info("Add[ing] backlog rolling sum calc")
-    backlog_df = res3_pivot_df.groupby(["directorate", "department", "Code"]).apply(
+    backlog_df = res3_pivot_df.fillna(0).groupby(["directorate", "department", "Code"]).apply(
         lambda df: df.rolling("180D", on=df.index.get_level_values('date')).sum()
     ).reset_index()
     logging.info("Add[ed] backlog rolling sum calc")
+    
     logging.info("Add[ing] service standard calc")
     backlog_df["service_standard"] = (backlog_df["closed_within_target_sum"] / backlog_df["closed_count"] * 100)
     backlog_df["service_standard"].replace(np.inf, 0, inplace=True)
     logging.info("Add[ed] service standard calc")
-
+    
     logging.info("Filter[ing] metrics to latest data date")
-    latest_date_dept = backlog_df.date.max()
+    backlog_df["date"] = pd.to_datetime(backlog_df["date"])
+    latest_date_dept = backlog_df.date.max() - timedelta(days=2)
     stats_filt = backlog_df.query("date == @latest_date_dept").copy()
+ 
     logging.info("Filter[ed] metrics to latest data date")
     logging.info("Calculat[ing] total requests to date")
-    opened_total = res3_pivot_df.query("date >= @START_DATE").groupby(["directorate", "department", "Code"]).agg(
+    opened_total = res3_pivot_df.query("date >= @START_DATE").fillna(0).groupby(["directorate", "department", "Code"]).agg(
         total_opened=("opened_count", "sum")
     ).reset_index()
+    
     logging.info("Calculat[ed] total requests to date")
     logging.info("Merg[ing] metrics and total requests")
     combined = pd.merge(stats_filt, opened_total, on=["directorate", "department", "Code"], how="left", validate="1:1")
