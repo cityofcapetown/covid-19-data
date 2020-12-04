@@ -148,7 +148,7 @@ if __name__ == "__main__":
 
     logging.info("Add[ing] backlog rolling sum calc")
     backlog_df = res3_pivot_df.groupby(INDEX_COLS).apply(
-        lambda df: df.rolling(ROLLLING_WINDOW, min_periods=MIN_PERIODS, on=df.index.get_level_values('date')).sum()
+        lambda df: df.rolling(ROLLLING_WINDOW, min_periods=MIN_PERIODS, on=df.index.get_level_values(DATE_COL)).sum()
     ).reset_index()
     logging.info("Add[ed] backlog rolling sum calc")
 
