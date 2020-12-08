@@ -65,7 +65,7 @@ def minio_csv_to_df(minio_filename_override, minio_key, minio_secret):
         
         else:
             logging.debug(f"Reading in raw data from '{temp_data_file.name}'...") 
-            df = pd.read_csv(temp_data_file, low_memory=False)
+            df = pd.read_csv(temp_data_file, low_memory=False, encoding ='latin1')
             return df
 
     
