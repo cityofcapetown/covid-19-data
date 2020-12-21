@@ -23,7 +23,7 @@ startup_cmd = (
     "pip3 install $DB_UTILS_LOCATION/$DB_UTILS_PKG"
 )
 
-dag_interval = "55 * * * *"
+dag_interval = "0 12 * * *"
 dag = DAG('covid-19-hr-data',
           start_date=DAG_STARTDATE,
           catchup=False,
@@ -71,7 +71,7 @@ def covid_19_data_task(task_name, task_kwargs={}):
         name=name,
         task_id=name,
         dag=dag,
-        execution_timeout=timedelta(hours=3),
+        execution_timeout=timedelta(hours=12),
         **run_args
     )
 
