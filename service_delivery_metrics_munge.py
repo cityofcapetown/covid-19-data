@@ -28,6 +28,7 @@ LAKE_CLASSIFICATION = minio_utils.DataClassification.LAKE
 DEPT_SERVICE_METRICS = "business_continuity_service_delivery_department_metrics"
 
 # settings
+DATE_FORMAT = "%Y-%m-%d"
 START_DATE = pd.to_datetime('2020-10-12')
 MIN_PERIODS = 90
 RESOLUTION = 3
@@ -51,7 +52,10 @@ CODE_GRP = "CodeGroupID"
 MEASURE = "measure"
 VAL = "value"
 FEATURE = "feature"
-INDEX_COLS = ["directorate", "department", CODE]
+DIRCT = "directorate"
+DEPT = "department"
+
+INDEX_COLS = [DIRCT, DEPT, CODE]
 
 SECRETS_PATH_VAR = "SECRETS_PATH"
 
@@ -102,22 +106,24 @@ if __name__ == "__main__":
     service_facts = service_dfs[0]
     service_attribs = service_dfs[1]
 
-    for department in service_attribs["department"].unique():
+    for department in service_attribs[DEPT].unique():
         if department not in DEPARTMENTS_CLR_DICT.keys():
             DEPARTMENTS_CLR_DICT[department] = DEFAULT_GREY
 
     logging.info("Filter[ing] to hex 3 resolution")
     service_facts_hex_3 = service_facts.query("resolution == @RESOLUTION").copy().assign(
-        date=lambda df: pd.to_datetime(df.date, format="%Y-%m-%d"))
+        date=lambda df: pd.to_datetime(df.date, format=DATE_FORMAT))
     logging.info("Filter[ed] to hex 3 resolution")
 
     logging.info("Merg[ing] to annotations")
-    res3_facts_annotated = pd.merge(service_facts_hex_3, service_attribs, how="left", on="feature", validate="m:1")
+    res3_facts_annotated = pd.merge(service_facts_hex_3, service_attribs, how="left", on=FEATURE, validate="m:1")
     logging.info("Merg[ed] to annotations")
 
     logging.info("Generat[ing] request code annotation name")
-    res3_facts_annotated.loc[:, "Code"] = res3_facts_annotated['Code'] + " (" + res3_facts_annotated[
-        'CodeGroupID'] + "-" + res3_facts_annotated['CodeID'] + ")"
+    res3_facts_annotated.loc[:, CODE] = (res3_facts_annotated[CODE] + " (" +
+                                         res3_facts_annotated[CODE_GRP] + "-" +
+                                         res3_facts_annotated[CODE_ID] + ")"
+                                         )
     logging.info("Generat[ed] request code annotation name")
 
     logging.info("Pre-Pivot[ing] aggregation on dataframe")
@@ -129,7 +135,7 @@ if __name__ == "__main__":
     duplicate_index_test = res3_pre_pivot_agg_df[res3_pre_pivot_agg_df.duplicated(
         subset=INDEX_COLS + [DATE_COL, MEASURE])].copy()
     if not duplicate_index_test.empty:
-        logging.warning("Danger, duplicate values across the index, this will led to unwanted aggreagation")
+        logging.error("Danger, duplicate values across the index, this will led to unwanted aggregation")
         sys.exit(-1)
     logging.info("Check[ed] for duplicates across index range")
 
@@ -182,7 +188,7 @@ if __name__ == "__main__":
     logging.info("Merg[ed] metrics and total requests")
 
     logging.info("Add[ing] color field")
-    res3_combined["dept_color"] = res3_combined["department"].apply(lambda x: DEPARTMENTS_CLR_DICT[x])
+    res3_combined["dept_color"] = res3_combined[DEPT].apply(lambda x: DEPARTMENTS_CLR_DICT[x])
     logging.info("Add[ed] color field")
 
     # put the file in minio
