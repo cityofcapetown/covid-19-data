@@ -29,7 +29,7 @@ FEATURE_TYPE_COL = "feature_type"
 SERVICE_STANDARD_WEIGHTING_MEASURE = "service_standard_weighting"
 LONG_BACKLOG_WEIGHTING_MEASURE = "long_backlog_weighting"
 LINEAR_MEASURES = [
-    "opened_count", "closed_count", "opened_within_target_sum", "closed_within_target_sum",
+    "opened_count", "closed_count", "opened_within_target_sum", "closed_within_target_sum", "opened_still_open_sum",
     "backlog", SERVICE_STANDARD_WEIGHTING_MEASURE, LONG_BACKLOG_WEIGHTING_MEASURE
 ]
 
