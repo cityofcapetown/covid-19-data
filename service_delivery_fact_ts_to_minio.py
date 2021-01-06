@@ -86,7 +86,7 @@ def _compute_non_linear_measure(group_df, value_measure, weighting_measure):
 
     pivot_df = group_df.pivot(
         index=[DATE_COL, HEX_RESOLUTION_COL, HEX_INDEX_COL], columns=MEASURE_COL, values=VALUE_COL
-    )
+    ).fillna(0)
     if value_measure not in pivot_df.columns or weighting_measure not in pivot_df.columns:
         logging.warning(f"Skipping computing value of '{value_measure}', using '{weighting_measure}' as weights")
         return pandas.DataFrame()
