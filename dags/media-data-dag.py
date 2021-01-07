@@ -23,7 +23,7 @@ startup_cmd = (
     "pip3 install $DB_UTILS_LOCATION/$DB_UTILS_PKG"
 )
 
-dag_interval = timedelta(hours=1)
+dag_interval = timedelta(days=1)
 dag = DAG('covid-19-media-data',
           start_date=DAG_STARTDATE,
           catchup=True,
@@ -38,7 +38,7 @@ k8s_run_env = {
     'COVID_19_DEPLOY_URL': 'https://ds2.capetown.gov.za/covid-19-data-deploy',
     'COVID_19_DATA_DIR': '/covid-19-data',
     'DB_UTILS_LOCATION': 'https://ds2.capetown.gov.za/db-utils',
-    'DB_UTILS_PKG': 'db_utils-0.3.2-py2.py3-none-any.whl'
+    'DB_UTILS_PKG': 'db_utils-0.3.6-py2.py3-none-any.whl'
 }
 
 # airflow-workers' secrets
