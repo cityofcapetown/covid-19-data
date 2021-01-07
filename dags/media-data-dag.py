@@ -81,4 +81,7 @@ def covid_19_data_task(task_name, task_kwargs={}):
 MEDIA_TASK = 'media-data-fetch'
 meda_data_operator = covid_19_data_task(MEDIA_TASK)
 
+SD_MEDIA_TASK = 'sd-media-data-fetch'
+sd_meda_data_operator = covid_19_data_task(SD_MEDIA_TASK)
+
 # Dependencies
