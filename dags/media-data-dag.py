@@ -84,4 +84,8 @@ meda_data_operator = covid_19_data_task(MEDIA_TASK)
 SD_MEDIA_TASK = 'sd-media-data-fetch'
 sd_meda_data_operator = covid_19_data_task(SD_MEDIA_TASK)
 
+SD_MEDIA_MUNGE_TASK = 'sd-media-data-munge'
+sd_meda_munge_data_operator = covid_19_data_task(SD_MEDIA_MUNGE_TASK)
+
 # Dependencies
+sd_meda_data_operator >> sd_meda_munge_data_operator
