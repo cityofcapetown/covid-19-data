@@ -331,7 +331,7 @@ if __name__ == "__main__":
             use_dates_df = filter_df(dist_df, date_col_to_use, DROP_LAST_DAYS)
 
             if use_dates_df.empty:
-                logging.error(f"Filtering returned an empty datagrame for {dist}: {subd}: {date_col_to_use}\nSkipping")
+                logging.error(f"Filtering returned an empty dataframe for {dist}: {subd}: {date_col_to_use}\nSkipping")
                 continue
 
             #  calculate the freq of total cases at each lag day for each target date
@@ -339,13 +339,13 @@ if __name__ == "__main__":
             master_lag_df = get_lag_freqs(use_dates_df, date_col_to_use, MAX_LAG_DAYS, DROP_LAST_DAYS)
 
             if master_lag_df.empty:
-                logging.error(f"Freq calculation returned an empty datagrame for {dist}: {subd}: {date_col_to_use}\nSkipping")
+                logging.error(f"Freq calculation returned an empty dataframe for {dist}: {subd}: {date_col_to_use}\nSkipping")
                 continue
             # calculate the median and sem for each lag day
             logging.info(f"calculating the median and sem for each lag day")
             final_lag_df = get_lag_median_stdev(master_lag_df, date_col_to_use, WINDOW)
             if final_lag_df.empty:
-                logging.error(f"Median calculation returned an empty datagrame for {dist}: {subd}: {date_col_to_use}\nSkipping")
+                logging.error(f"Median calculation returned an empty dataframe for {dist}: {subd}: {date_col_to_use}\nSkipping")
                 continue
             
             # add the district and subdistrict columns
