@@ -106,7 +106,7 @@ spv_metro_subd_munge_operator = covid_19_data_task(SPV_METRO_SUBD_TASK)
 SPV_DOUBLE_TIME_TASK = "spv-doubling-time-munge"
 spv_double_time_munge_operator = covid_19_data_task(SPV_DOUBLE_TIME_TASK)
 
-SPV_AGE_DIST_TASK = "spv_age_distribution_munge"
+SPV_AGE_DIST_TASK = "spv-age-distribution-munge"
 spv_age_distribution_munge_operator = covid_19_data_task(SPV_AGE_DIST_TASK)
 
 # Dependencies
