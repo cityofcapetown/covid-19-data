@@ -100,7 +100,18 @@ spv_subplace_munge_operator = covid_19_data_task(SPV_SUBPLACE_TASK)
 SPV_CKAN_TASK = 'spv-subplace-ckan-push'
 spv_ckan_push_operator = covid_19_data_task(SPV_CKAN_TASK)
 
+SPV_METRO_SUBD_TASK = "spv-metro-subdistrict-munge"
+spv_metro_subd_munge_operator = covid_19_data_task(SPV_METRO_SUBD_TASK)
+
+SPV_DOUBLE_TIME_TASK = "spv-doubling-time-munge"
+spv_double_time_munge_operator = covid_19_data_task(SPV_DOUBLE_TIME_TASK)
+
+SPV_AGE_DIST_TASK = "spv_age_distribution_munge"
+spv_age_distribution_munge_operator = covid_19_data_task(SPV_AGE_DIST_TASK)
+
 # Dependencies
 wcgh_data_fetch_operator >> wcgh_ckan_data_push_operator
 wcgh_data_fetch_operator >> spv_data_fetch_operator >> spv_data_munge_operator >> spv_adjust_munge_operator
 wcgh_data_fetch_operator >> spv_subplace_munge_operator >> spv_ckan_push_operator
+wcgh_data_fetch_operator >> spv_metro_subd_munge_operator >> spv_double_time_munge_operator
+wcgh_data_fetch_operator >> spv_age_distribution_munge_operator
