@@ -208,7 +208,7 @@ def create_mentions_df(mention_dicts, flatten_cols=NESTED_COLS_WITH_IDS):
     # Creating column of flattened tag IDs
     if TAGS_COL in data_df.columns:
         data_df[TAG_IDS_COL] = data_df[TAGS_COL].apply(
-            lambda tag_dicts: ",".join(sorted([
+            lambda tag_dicts: ";".join(sorted([
                 str(tag_dict["id"])
                 for tag_dict in tag_dicts
                 if tag_dict and tag_dict['namespace'] in TOPIC_NAMESPACE_VALUES
