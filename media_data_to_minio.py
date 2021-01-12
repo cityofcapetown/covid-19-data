@@ -38,6 +38,12 @@ TAGS_COL = "tags"
 TAG_IDS_COL = "tagIds"
 TOPIC_NAMESPACE_VALUES = {"topic", "topic_tree"}
 
+PUBLISHED_COL = "published"
+URI_COL = "uri"
+
+TWITTER_ID_REGEX = "http://twitter.com/.+/status(es|)/(\d+)"
+TWITTER_ID_COL = "twitterId"
+
 BRANDSEYE_HOST = "api.brandseye.com"
 BRANDSEYE_PATH = "v4/accounts/BECI15AA/mentions"
 
@@ -216,7 +222,10 @@ def create_mentions_df(mention_dicts, flatten_cols=NESTED_COLS_WITH_IDS):
         )
 
     # Converting the published column to datetime, setting timezone to SAST
-    data_df["published"] = pandas.to_datetime(data_df.published).dt.tz_convert("Africa/Johannesburg")
+    data_df[PUBLISHED_COL] = pandas.to_datetime(data_df[PUBLISHED_COL]).dt.tz_convert("Africa/Johannesburg")
+
+    # Extracting Twitter IDs
+    data_df[TWITTER_ID_COL] = data_df[URI_COL].str.extract(TWITTER_ID_REGEX)[1]
 
     # Sanitising bad unicode characters
     for col in data_df.columns:
