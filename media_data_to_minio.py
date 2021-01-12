@@ -15,19 +15,19 @@ import requests
 
 # Parameter Components
 BRAND_ID = "95745"
-# Supplied by Lara Basson, Brandseye on 2019-03-19
+# Supplied by Lara Basson, Brandseye on 2020-03-19
 CITY_AUTHOR_IDS = ('Fx70a1921b8483bebf',
                    'Fx853d9b920b39998f',  # MyCiti Bus
                    'Ixcityofct',
                    'Tx132437983',
                    'Tx2645400613')
 COVID_TAG_IDS = ("120314",)
-COVID_CONTENT_TERMS = ('covid*',
-                       '#covid*',
-                       'corona*',
-                       '#corona*',
-                       '#corina*',
-                       'corina*')
+COVID_CONTENT_TERMS = ('covid*', '#covid*',
+                       'corona*', '#corona*',
+                       'corina*', '#corina*',
+                       'lockdown*', '#lockdown*',
+                       'socialdistanc*', '#socialdistanc*',
+                       'pandemic', '#pandemic')
 SEARCH_START_DATE = '2019-12-01'
 SEARCH_INTERVAL = "7D"
 REFRESH_INTERVAL = 2
