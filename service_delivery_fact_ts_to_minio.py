@@ -64,8 +64,8 @@ def get_fact_dataset(fact_bucket, minio_access, minio_secret):
     return df[[DATE_COL, HEX_INDEX_COL, HEX_RESOLUTION_COL, FEATURE_TYPE_COL, FEATURE_COL, MEASURE_COL, VALUE_COL]]
 
 
-def filter_by_resolution(fact_df):
-    return fact_df.query(f"{HEX_RESOLUTION_COL} == {HEX_RESOLUTION}")
+def filter_by_resolution(fact_df, resolution=HEX_RESOLUTION):
+    return fact_df.query(f"{HEX_RESOLUTION_COL} == {resolution}")
 
 
 def _compute_weighted_average(day_df, value_measure, weighting_measure):
