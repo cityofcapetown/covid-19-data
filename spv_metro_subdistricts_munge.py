@@ -26,6 +26,8 @@ SUBDISTRICT_LAG = "spv_lag_freq_table_wc_subdistricts.csv"
 WC_LAG = "spv_lag_freq_table_wc.csv"
 
 CASES_ADJUSTED_PREFIX = "spv_cases_lag_adjusted_metro"
+HOSP_ADJUSTED_PREFIX = "spv_hosp_lag_adjusted_metro"
+ICU_ADJUSTED_PREFIX = "spv_icu_lag_adjusted_metro"
 DEATHS_ADJUSTED_PREFIX = "spv_deaths_lag_adjusted_metro"
 
 EDGE_CLASSIFICATION = minio_utils.DataClassification.EDGE
@@ -35,10 +37,13 @@ SUBDISTRICTS = {'Northern', 'Southern', 'Eastern', 'Western',
 CT_CITY = 'City of Cape Town'
 CT_PREFIX_STRIP = f"{CT_CITY} - "
 DIAGNOSIS = "Date.of.Diagnosis"
+HOSP = "Admission.Date"
+ICU = "Date.of.ICU.Admission"
+DEATH = "Date.of.Death"
 EXPORT = "Export.Date"
 SUBDISTRICT = "Subdistrict"
 DISTRICT = "District"
-DEATH = "Date.of.Death"
+
 DATE = "Date"
 LAG_DAY = "lag_day"
 LAG_TYPE = 'lag_type'
@@ -151,7 +156,9 @@ if __name__ == "__main__":
     spv_latest_select.sort_values(DIAGNOSIS, ascending=True, inplace=True)
     for kind, outname in [
         (DIAGNOSIS, CASES_ADJUSTED_PREFIX),
-        (DEATH, DEATHS_ADJUSTED_PREFIX)
+        (HOSP, HOSP_ADJUSTED_PREFIX),
+        (ICU, ICU_ADJUSTED_PREFIX),
+        (DEATH, DEATHS_ADJUSTED_PREFIX),
     ]:
         logging.info(f"process[ing] {kind} data")
         logging.info(f"Filter[ing] to {kind}")

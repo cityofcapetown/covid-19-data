@@ -26,10 +26,14 @@ WC_CASES = "wc_all_cases.csv"
 EDGE_CLASSIFICATION = minio_utils.DataClassification.EDGE
 
 CASES_ADJUSTED_MASTER = "spv_cases_age_distribution"
+HOSP_ADJUSTED_MASTER = "spv_hosp_age_distribution"
+ICU_ADJUSTED_MASTER = "spv_icu_age_distribution"
 DEATHS_ADJUSTED_MASTER = "spv_deaths_age_distribution"
 
 CT_CITY_METRO = 'City of Cape Town'
 EXPORT = "Export.Date"
+HOSP = "Admission.Date"
+ICU = "Date.of.ICU.Admission"
 DIAGNOSIS = "Date.of.Diagnosis"
 DEATH = "Date.of.Death"
 DATE = "Date"
@@ -133,6 +137,8 @@ if __name__ == "__main__":
 
     for kind, outfile in [
         (DIAGNOSIS, CASES_ADJUSTED_MASTER),
+        (HOSP, HOSP_ADJUSTED_MASTER),
+        (ICU, ICU_ADJUSTED_MASTER),
         (DEATH, DEATHS_ADJUSTED_MASTER)
     ]:
         # down select to relevant columns
