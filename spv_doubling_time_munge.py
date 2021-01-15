@@ -24,11 +24,20 @@ from spv_metro_subdistricts_munge import minio_csv_to_df, write_to_minio
 # minio settings
 COVID_BUCKET = "covid"
 RESTRICTED_PREFIX = "data/private/"
+# metro
 CASES_ADJUSTED_METRO = "spv_cases_lag_adjusted_metro.csv"
+HOSP_ADJUSTED_METRO = "spv_hosp_lag_adjusted_metro.csv"
+ICU_ADJUSTED_METRO = "spv_icu_lag_adjusted_metro.csv"
 DEATHS_ADJUSTED_METRO = "spv_deaths_lag_adjusted_metro.csv"
+# subdistricts
 CASES_ADJUSTED_METRO_SUBD = "spv_cases_lag_adjusted_metro_subdistricts.csv"
+HOSP_ADJUSTED_METRO_SUBD = "spv_hosp_lag_adjusted_metro_subdistricts.csv"
+ICU_ADJUSTED_METRO_SUBD = "spv_icu_lag_adjusted_metro_subdistricts.csv"
 DEATHS_ADJUSTED_METRO_SUBD = "spv_deaths_lag_adjusted_metro_subdistricts.csv"
+# outfiles
 CASES_DT_OUTFILE_PREFIX = "spv_cases_doubling_time_metro"
+HOSP_DT_OUTFILE_PREFIX = "spv_hosp_doubling_time_metro"
+ICU_DT_OUTFILE_PREFIX = "spv_icu_doubling_time_metro"
 DEATHS_DT_OUTFILE_PREFIX = "spv_deaths_doubling_time_metro"
 EDGE_CLASSIFICATION = minio_utils.DataClassification.EDGE
 
@@ -36,6 +45,8 @@ EDGE_CLASSIFICATION = minio_utils.DataClassification.EDGE
 DATE = "Date"
 DAYS = "Days"
 CASES = "Cases"
+HOSP = "Hospital_Admissions"
+ICU = "ICU_Admissions"
 DEATHS = "Deaths"
 CUM_VALS = "Cumulative_Values"
 DAILY_VALS = "Daily_Values"
@@ -350,6 +361,17 @@ if __name__ == "__main__":
          "regions": METRO_REGIONS},
         {"file": CASES_ADJUSTED_METRO_SUBD, "kind": CASES, "outfile": f"{CASES_DT_OUTFILE_PREFIX}_subdistricts",
          "regions": SUBD_REGIONS},
+
+        {"file": HOSP_ADJUSTED_METRO, "kind": HOSP, "outfile": HOSP_DT_OUTFILE_PREFIX,
+         "regions": METRO_REGIONS},
+        {"file": HOSP_ADJUSTED_METRO_SUBD, "kind": HOSP, "outfile": f"{HOSP_DT_OUTFILE_PREFIX}_subdistricts",
+         "regions": SUBD_REGIONS},
+
+        {"file": ICU_ADJUSTED_METRO, "kind": ICU, "outfile": ICU_DT_OUTFILE_PREFIX,
+         "regions": METRO_REGIONS},
+        {"file": ICU_ADJUSTED_METRO_SUBD, "kind": ICU, "outfile": f"{ICU_DT_OUTFILE_PREFIX}_subdistricts",
+         "regions": SUBD_REGIONS},
+
         {"file": DEATHS_ADJUSTED_METRO, "kind": DEATHS, "outfile": DEATHS_DT_OUTFILE_PREFIX,
          "regions": METRO_REGIONS},
         {"file": DEATHS_ADJUSTED_METRO_SUBD, "kind": DEATHS, "outfile": f"{DEATHS_DT_OUTFILE_PREFIX}_subdistricts",
@@ -360,14 +382,14 @@ if __name__ == "__main__":
         outfile = dict_collection["outfile"]
         regions = dict_collection["regions"]
 
-        logging.info(f"Fetch[ing] aggregated case/deaths data")
+        logging.info(f"Fetch[ing] aggregated data")
         df = minio_csv_to_df(
             minio_filename_override=f"{RESTRICTED_PREFIX}{file}",
             minio_bucket=COVID_BUCKET,
             minio_key=secrets["minio"]["edge"]["access"],
             minio_secret=secrets["minio"]["edge"]["secret"],
         )
-        logging.info(f"Fetch[ed] aggregated case/deaths data")
+        logging.info(f"Fetch[ed] aggregated data")
 
         master_df = pd.DataFrame()
         # filter to a reasonable start date
