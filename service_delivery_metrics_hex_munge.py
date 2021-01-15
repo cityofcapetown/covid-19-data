@@ -20,8 +20,9 @@ import geopandas as gpd
 import geojson
 from h3 import h3
 import pandas as pd
-import numpy as np
 from shapely.geometry import Polygon
+# local imports
+import service_delivery_metrics_munge
 
 # set bucket constants
 SERVICE_FACTS_BUCKET = "service-standards-tool.sd-request-facts"
@@ -34,35 +35,19 @@ LAKE_CLASSIFICATION = minio_utils.DataClassification.LAKE
 # outfiles
 CITY_SERVICE_METRICS_JSON = "business_continuity_service_delivery_city_hex_top_n.geojson"
 
-# settings
-START_DATE = pd.to_datetime('2020-10-12')
-
 # the number of request codes per hex to capture
-SELECT_TOP_N = 5
-MIN_PERIODS = 90
 RESOLUTION = 7
-DELTA_DAYS = 2
-ROLLLING_WINDOW = '180D'
-SERVICE_STD = "service_standard"
-BACKLOG = "backlog"
-TOTAL_OPEN = "total_opened"
+SELECT_TOP_N = 5
 OPEN_COUNT = "opened_count"
-CLOSED_COUNT = "closed_count"
-CLOSED_IN_TARGET = "closed_within_target_sum"
 HEX_INDEX_COL = "index"
 DATE_COL = "date"
 RES_COL = "resolution"
 GEO_COL = "geometry"
 CODE = "Code"
-CODE_ID = "CodeID"
-CODE_GRP = "CodeGroupID"
-MEASURE = "measure"
-VAL = "value"
 FEATURE = "feature"
-DIRCT = "directorate"
-DEPT = "department"
 
-INDEX_COLS = [HEX_INDEX_COL, DIRCT, DEPT, CODE]
+INDEX_COLS = [HEX_INDEX_COL, "directorate", "department", CODE]
+METRIC_COLS = ["service_standard", "backlog", "total_opened"]
 
 SECRETS_PATH_VAR = "SECRETS_PATH"
 
@@ -132,7 +117,8 @@ if __name__ == "__main__":
 
     logging.info("Filter[ing] to hex 7 resolution")
     service_facts_hex_7 = service_facts.query(f"{RES_COL} == @RESOLUTION").copy().assign(
-        date=lambda df: pd.to_datetime(df[DATE_COL], format="%Y-%m-%d"))
+        **{DATE_COL: lambda df: pd.to_datetime(df[DATE_COL], format="%Y-%m-%d")}
+    )
     logging.info("Filter[ed] to hex 7 resolution")
 
     # filter out those with no location data
@@ -145,71 +131,29 @@ if __name__ == "__main__":
     logging.info("Merg[ed] to annotations")
 
     logging.info("Generat[ing] request code annotation name")
-    res7_facts_annotated.loc[:, CODE] = (res7_facts_annotated[CODE] + " (" +
-                                         res7_facts_annotated[CODE_GRP] + "-" +
-                                         res7_facts_annotated[CODE_ID] + ")"
-                                         )
+    res7_facts_annotated.loc[:, CODE] = service_delivery_metrics_munge.generate_request_code_name(res7_facts_annotated)
     logging.info("Generat[ed] request code annotation name")
 
-    logging.info("Pre-Pivot[ing] aggregation on dataframe")
-    res7_pre_pivot_agg_df = res7_facts_annotated.groupby(
-        INDEX_COLS + [DATE_COL, MEASURE], as_index=False).sum()
-    logging.info("Pre-Pivot[ed] aggregation on dataframe")
-
-    logging.info("Check[ing] for duplicates across index range")
-    duplicate_index_test = res7_pre_pivot_agg_df[res7_pre_pivot_agg_df.duplicated(
-        subset=[DATE_COL, HEX_INDEX_COL, DIRCT, DEPT, CODE, MEASURE])].copy()
-    if not duplicate_index_test.empty:
-        logging.warning("Danger, duplicate values across the index, this will led to unwanted aggreagation")
-        sys.exit(-1)
-    logging.info("Check[ed] for duplicates across index range")
-
     logging.info("Pivot[ing] dataframe")
-    res7_pivot_df = res7_pre_pivot_agg_df.pivot_table(
-        columns=MEASURE,
-        values=VAL,
-        index=[DATE_COL] + INDEX_COLS
-    ).fillna(0)
-    res7_pivot_df.sort_values(DATE_COL, inplace=True)
+    res7_pivot_df = service_delivery_metrics_munge.pivot_dataframe(res7_facts_annotated, INDEX_COLS)
     logging.info("Pivot[ed] dataframe")
 
-    logging.info("Add[ing] backlog calc")
-    res7_pivot_df[BACKLOG] = res7_pivot_df[OPEN_COUNT] - res7_pivot_df[CLOSED_COUNT]
-    logging.info("Add[ed] backlog calc")
-
-    logging.info("Add[ing] backlog rolling sum calc")
-    backlog_df = res7_pivot_df.groupby(INDEX_COLS).apply(
-        lambda df: df.rolling(ROLLLING_WINDOW, min_periods=MIN_PERIODS, on=df.index.get_level_values(DATE_COL)).sum()
-    ).reset_index()
-    logging.info("Add[ed] backlog rolling sum calc")
-
-    logging.info("Add[ing] service standard calc")
-    backlog_df[SERVICE_STD] = (backlog_df[CLOSED_IN_TARGET] / backlog_df[CLOSED_COUNT] * 100)
-    backlog_df[SERVICE_STD].replace(np.inf, 0, inplace=True)
-    logging.info("Add[ed] service standard calc")
+    logging.info("Calculat[ing] metric values")
+    res7_calc_df = service_delivery_metrics_munge.calculate_metrics_dataframe(res7_pivot_df, INDEX_COLS)
+    logging.info("Calculat[ed] metric values")
 
     logging.info("Filter[ing] metrics to latest data date")
-    latest_date_dept = backlog_df[DATE_COL].max() - timedelta(days=DELTA_DAYS)
-    res7_backlog_df_filt = backlog_df.query(f"{DATE_COL} == @latest_date_dept").copy()
+    res7_filt_df = service_delivery_metrics_munge.select_latest_value(res7_calc_df, INDEX_COLS)
     logging.info("Filter[ed] metrics to latest data date")
 
-    logging.info("Calculat[ing] total requests to date")
-    res7_opened_total = res7_pivot_df.query(f"{DATE_COL} >= @START_DATE").groupby(
-        INDEX_COLS).agg(
-        total_opened=(OPEN_COUNT, "sum")
-    ).reset_index()
-    logging.info("Calculat[ed] total requests to date")
-
-    logging.info("Merg[ing] metrics and total requests")
-    res7_combined = pd.merge(
-        res7_backlog_df_filt,
-        res7_opened_total,
-        on=INDEX_COLS,
-        how="left",
-        validate="1:1"
-    )
+    logging.info("Calculat[ing] total requests attribute")
+    res7_combined = service_delivery_metrics_munge.calc_total_values(res7_filt_df, res7_pivot_df, INDEX_COLS)
     res7_combined.drop(columns=[DATE_COL], inplace=True)
-    logging.info("Merg[ed] metrics and total requests")
+    logging.info("Calculat[ed] total requests attribute")
+
+    logging.info("Dropp[ing] any entries where all metrics are NaNs")
+    res7_combined = service_delivery_metrics_munge.drop_nas(res7_combined, INDEX_COLS)
+    logging.info("Dropp[ed] any entries where all metrics are NaNs")
 
     # get top n request per hex
     logging.info(f"Filter[ing] to top {SELECT_TOP_N} codes per hex")
@@ -226,7 +170,7 @@ if __name__ == "__main__":
     # filter to only the target columns
     logging.info(f"Filter[ing] to target columns")
     top_n_codes_by_hex_filter = top_n_codes_by_hex[
-        INDEX_COLS + [BACKLOG, SERVICE_STD, TOTAL_OPEN, GEO_COL]].copy()
+        INDEX_COLS + [*METRIC_COLS, GEO_COL]].copy()
     logging.info(f"Filter[ing] to target columns")
 
     logging.info(f"Convert[ing] to geodataframe")
@@ -252,8 +196,7 @@ if __name__ == "__main__":
     feature_collection = geojson.FeatureCollection(features)
     logging.info(f"Creat[ed] geojson from geodataframe")
 
-    with pathlib.Path(tempfile.TemporaryDirectory().name) as tempdir:
-        tempdir.mkdir()
+    with tempfile.TemporaryDirectory() as tdir, pathlib.Path(tdir) as tempdir:
         out_hex_geojson = pathlib.Path(tempdir, f"{CITY_SERVICE_METRICS_JSON}")
         geojson.dump(feature_collection, out_hex_geojson.open("w"))
 

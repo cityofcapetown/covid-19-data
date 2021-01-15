@@ -5,7 +5,6 @@ script to calculate backlog % close and total requests opened metrics for city a
 __author__ = "Colin Anthony"
 
 # base imports
-from datetime import timedelta
 import json
 import logging
 import os
@@ -30,9 +29,9 @@ DEPT_SERVICE_METRICS = "business_continuity_service_delivery_department_metrics"
 # settings
 DATE_FORMAT = "%Y-%m-%d"
 START_DATE = pd.to_datetime('2020-10-12')
+STALENESS_THRESHOLD = pd.Timedelta('28D')
 MIN_PERIODS = 90
 RESOLUTION = 3
-DELTA_DAYS = 2
 ROLLLING_WINDOW = '180D'
 DEFAULT_GREY = "#bababa"
 
@@ -54,6 +53,7 @@ VAL = "value"
 FEATURE = "feature"
 DIRCT = "directorate"
 DEPT = "department"
+DEPT_COLOUR = "dept_color"
 
 INDEX_COLS = [DIRCT, DEPT, CODE]
 
@@ -67,6 +67,121 @@ DEPARTMENTS_CLR_DICT = {
     "Public Housing": '#fb9a99',
     "Recreation and Parks": '#e31a1c'
 }
+
+
+def generate_request_code_name(df):
+    names_series = df.apply(
+        lambda row: f"{row[CODE]} ({row[CODE_GRP]}-{CODE_ID})",
+        axis=1
+    )
+
+    return names_series
+
+
+def pivot_dataframe(df, index_cols=INDEX_COLS):
+    logging.debug("Pre-Pivot[ing] aggregation on dataframe")
+    pre_pivot_df = df.groupby(
+        index_cols + [DATE_COL, MEASURE], as_index=False
+    ).sum()
+    logging.debug("Pre-Pivot[ed] aggregation on dataframe")
+
+    logging.debug("Check[ing] for duplicates across index range")
+    duplicate_index_test = pre_pivot_df[pre_pivot_df.duplicated(
+        subset=index_cols + [DATE_COL, MEASURE])].copy()
+    if not duplicate_index_test.empty:
+        logging.error("Danger, duplicate values across the index, this will led to unwanted aggregation")
+        sys.exit(-1)
+    logging.debug("Check[ed] for duplicates across index range")
+
+    logging.debug("Pivot[ing] dataframe")
+    pivoted_df = pre_pivot_df.pivot_table(
+        columns=MEASURE,
+        values=VAL,
+        index=index_cols + [DATE_COL]
+    ).fillna(0)
+    pivoted_df.sort_values(DATE_COL, inplace=True)
+    logging.debug("Pivot[ed] dataframe")
+
+    return pivoted_df
+
+
+def calculate_metrics_dataframe(df, index_cols=INDEX_COLS):
+    logging.debug("Add[ing] backlog calc")
+    calc_df = df.copy()
+    calc_df[BACKLOG] = calc_df[OPEN_COUNT] - calc_df[CLOSED_COUNT]
+    logging.debug("Add[ed] backlog calc")
+
+    logging.debug("Add[ing] backlog rolling sum calc")
+    metrics_df = calc_df.reset_index().groupby(index_cols).apply(
+        lambda groupby_df: (
+            groupby_df.set_index(DATE_COL)
+                      .resample(rule="1D").sum()  # Resample to make sure there is a value for each day (even if it's 0)
+                      .rolling(ROLLLING_WINDOW, min_periods=MIN_PERIODS).sum()  # Find the rolling sum
+        )
+    ).reset_index()
+    logging.debug("Add[ed] backlog rolling sum calc")
+
+    logging.debug("Add[ing] service standard calc")
+    metrics_df[SERVICE_STD] = (metrics_df[CLOSED_IN_TARGET] / metrics_df[CLOSED_COUNT] * 100)
+    metrics_df[SERVICE_STD].replace(np.inf, 0, inplace=True)
+    logging.debug("Add[ed] service standard calc")
+
+    return metrics_df
+
+
+def select_latest_value(df, index_cols=INDEX_COLS):
+    df[DATE_COL] = pd.to_datetime(df[DATE_COL])
+    filtered_df = df.copy().sort_values(
+        by=DATE_COL
+    ).drop_duplicates(
+        subset=index_cols, keep='last'
+    )
+
+    # Filtering to select request types that are *not too old*
+    max_date = filtered_df[DATE_COL].max()
+    stale_date = max_date - STALENESS_THRESHOLD
+    stale_indices = filtered_df.query(f"{DATE_COL} < @stale_date").index
+    if stale_indices.shape[0]:
+        logging.warning(
+            f"Dropping the following entries because latest val is earlier than '{stale_date.strftime('%Y-%m-%d')}':\n"
+            f"{filtered_df.loc[stale_indices]}"
+        )
+        filtered_df.drop(stale_indices, inplace=True)
+
+    return filtered_df
+
+
+def calc_total_values(df, pivot_df, index_cols=INDEX_COLS):
+    logging.debug("Calculat[ing] total requests to date")
+    opened_total = (
+        pivot_df.query(f"{DATE_COL} >= @START_DATE")
+                .groupby(index_cols)[OPEN_COUNT].sum()
+                .rename(TOTAL_OPEN)
+                .reset_index()
+    )
+    logging.debug("Calculat[ed] total requests to date")
+
+    logging.debug("Merg[ing] metrics and total requests")
+    combined_df = pd.merge(
+        df,
+        opened_total,
+        on=index_cols,
+        how="left",
+        validate="1:1"
+    )
+    logging.debug("Merg[ed] metrics and total requests")
+
+    return combined_df
+
+
+def drop_nas(df, index_cols=INDEX_COLS):
+    logging.debug(f"( pre-NaN drop) res3_combined.shape={df.shape}")
+    clean_df = df.dropna(subset=[
+        col for col in df.columns if col not in index_cols
+    ], how='all')
+    logging.debug(f"(post-NaN drop) res3_combined.shape={df.shape}")
+
+    return clean_df
 
 
 if __name__ == "__main__":
@@ -120,75 +235,32 @@ if __name__ == "__main__":
     logging.info("Merg[ed] to annotations")
 
     logging.info("Generat[ing] request code annotation name")
-    res3_facts_annotated.loc[:, CODE] = (res3_facts_annotated[CODE] + " (" +
-                                         res3_facts_annotated[CODE_GRP] + "-" +
-                                         res3_facts_annotated[CODE_ID] + ")"
-                                         )
+    res3_facts_annotated.loc[:, CODE] = generate_request_code_name(res3_facts_annotated)
     logging.info("Generat[ed] request code annotation name")
 
-    logging.info("Pre-Pivot[ing] aggregation on dataframe")
-    res3_pre_pivot_agg_df = res3_facts_annotated.groupby(
-        INDEX_COLS + [DATE_COL, MEASURE], as_index=False).sum()
-    logging.info("Pre-Pivot[ed] aggregation on dataframe")
-
-    logging.info("Check[ing] for duplicates across index range")
-    duplicate_index_test = res3_pre_pivot_agg_df[res3_pre_pivot_agg_df.duplicated(
-        subset=INDEX_COLS + [DATE_COL, MEASURE])].copy()
-    if not duplicate_index_test.empty:
-        logging.error("Danger, duplicate values across the index, this will led to unwanted aggregation")
-        sys.exit(-1)
-    logging.info("Check[ed] for duplicates across index range")
-
     logging.info("Pivot[ing] dataframe")
-    res3_pivot_df = res3_pre_pivot_agg_df.pivot_table(
-        columns=MEASURE,
-        values=VAL,
-        index=INDEX_COLS + [DATE_COL]
-    ).fillna(0)
-    res3_pivot_df.sort_values(DATE_COL, inplace=True)
+    res3_pivot_df = pivot_dataframe(res3_facts_annotated)
     logging.info("Pivot[ed] dataframe")
 
-    logging.info("Add[ing] backlog calc")
-    res3_pivot_df[BACKLOG] = res3_pivot_df[OPEN_COUNT] - res3_pivot_df[CLOSED_COUNT]
-    logging.info("Add[ed] backlog calc")
-
-    logging.info("Add[ing] backlog rolling sum calc")
-    backlog_df = res3_pivot_df.groupby(INDEX_COLS).apply(
-        lambda df: df.rolling(ROLLLING_WINDOW, min_periods=MIN_PERIODS, on=df.index.get_level_values(DATE_COL)).sum()
-    ).reset_index()
-    logging.info("Add[ed] backlog rolling sum calc")
-
-    logging.info("Add[ing] service standard calc")
-    backlog_df[SERVICE_STD] = (backlog_df[CLOSED_IN_TARGET] / backlog_df[CLOSED_COUNT] * 100)
-    backlog_df[SERVICE_STD].replace(np.inf, 0, inplace=True)
-    logging.info("Add[ed] service standard calc")
+    logging.info("Calculat[ing] metric values")
+    res3_calc_df = calculate_metrics_dataframe(res3_pivot_df)
+    logging.info("Calculat[ed] metric values")
 
     logging.info("Filter[ing] metrics to latest data date")
-    backlog_df[DATE_COL] = pd.to_datetime(backlog_df[DATE_COL])
-    latest_date_dept = backlog_df.date.max() - timedelta(days=DELTA_DAYS)
-    res3_backlog_df_filt = backlog_df.query(f"{DATE_COL} == @latest_date_dept").copy()
+    res3_filt_df = select_latest_value(res3_calc_df)
     logging.info("Filter[ed] metrics to latest data date")
 
-    logging.info("Calculat[ing] total requests to date")
-    res3_opened_total = res3_pivot_df.query(f"{DATE_COL} >= @START_DATE").groupby(
-        INDEX_COLS).agg(
-        total_opened=(OPEN_COUNT, "sum")
-    ).reset_index()
-    logging.info("Calculat[ed] total requests to date")
-
-    logging.info("Merg[ing] metrics and total requests")
-    res3_combined = pd.merge(
-        res3_backlog_df_filt,
-        res3_opened_total,
-        on=INDEX_COLS,
-        how="left",
-        validate="1:1"
-    )
+    logging.info("Calculat[ing] total requests attribute")
+    res3_combined = calc_total_values(res3_filt_df, res3_pivot_df)
     res3_combined.drop(columns=[DATE_COL], inplace=True)
-    logging.info("Merg[ed] metrics and total requests")
+    logging.info("Calculat[ed] total requests attribute")
+
+    logging.info("Dropp[ing] any entries where all metrics are NaNs")
+    res3_combined = drop_nas(res3_combined)
+    logging.info("Dropp[ed] any entries where all metrics are NaNs")
 
     logging.info("Add[ing] color field")
-    res3_combined["dept_color"] = res3_combined[DEPT].apply(lambda x: DEPARTMENTS_CLR_DICT[x])
+    res3_combined[DEPT_COLOUR] = res3_combined[DEPT].map(DEPARTMENTS_CLR_DICT)
     logging.info("Add[ed] color field")
 
     # put the file in minio
