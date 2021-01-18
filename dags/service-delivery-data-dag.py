@@ -88,7 +88,7 @@ data_hex_munge_operator = covid_19_data_task(DATA_HEX_MUNGE_TASK)
 
 SPATIAL_DATA_FETCH_TASK = 'service-delivery-spatial-metrics'
 spatial_data_fetch_operator = covid_19_data_task(SPATIAL_DATA_FETCH_TASK)
-SPATIAL_DATA_MUNGE_TASK = 'service-delivery-spatial-metrics'
+SPATIAL_DATA_MUNGE_TASK = 'service-delivery-spatial-metrics-munge'
 spatial_data_munge_operator = covid_19_data_task(SPATIAL_DATA_MUNGE_TASK)
 
 # Dependencies
