@@ -71,7 +71,7 @@ DEPARTMENTS_CLR_DICT = {
 
 def generate_request_code_name(df):
     names_series = df.apply(
-        lambda row: f"{row[CODE]} ({row[CODE_GRP]}-{CODE_ID})",
+        lambda row: f"{row[CODE]} ({row[CODE_GRP]}-{row[CODE_ID]})",
         axis=1
     )
 
