@@ -17,7 +17,7 @@ PROXY_ENV_VARS = PROXY_ENV_VARS + list(map(lambda x: x.upper(), PROXY_ENV_VARS))
 
 SENDER_FILTER = "VanRooyen"
 DAYS_LOOKBACK = 7
-FILES_PER_DAY = 6
+FILES_PER_DAY = 7
 DATA_FILE_LOOKUPS = {
     "Documents/ZEMP_Q0001_V7_BICS_COVID_AUTO_00000.htm": ("ANALYSIS_ia_pt_a", "zemp_q0001_v7_bics_covid_auto"),
     "Documents/ZEMP_Q0001_V7_BICS_COVID_AUTO1_00000.htm": ("ANALYSIS_ia_pt_a", "zemp_q0001_v7_bics_covid_auto"),
