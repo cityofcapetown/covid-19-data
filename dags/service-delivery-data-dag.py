@@ -79,8 +79,17 @@ def covid_19_data_task(task_name, task_kwargs={}):
 
 # Defining tasks
 DATA_FETCH_TASK = 'service-delivery-ts-generate'
-DATA_MUNGE_TASK = "service-delivery-metrics-munge"
-DATA_HEX_MUNGE_TASK = "service-delivery-metrics-hex-munge"
 data_fetch_operator = covid_19_data_task(DATA_FETCH_TASK)
+
+DATA_MUNGE_TASK = "service-delivery-metrics-munge"
 data_munge_operator = covid_19_data_task(DATA_MUNGE_TASK)
+DATA_HEX_MUNGE_TASK = "service-delivery-metrics-hex-munge"
 data_hex_munge_operator = covid_19_data_task(DATA_HEX_MUNGE_TASK)
+
+SPATIAL_DATA_FETCH_TASK = 'service-delivery-spatial-metrics'
+spatial_data_fetch_operator = covid_19_data_task(SPATIAL_DATA_FETCH_TASK)
+SPATIAL_DATA_MUNGE_TASK = 'service-delivery-spatial-metrics'
+spatial_data_munge_operator = covid_19_data_task(SPATIAL_DATA_MUNGE_TASK)
+
+# Dependencies
+spatial_data_fetch_operator >> spatial_data_munge_operator
