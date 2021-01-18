@@ -31,7 +31,17 @@ SAP_FILES_COLUMN_MAP = {
         "Employee": hr_data_munge.HR_TRANSACTIONAL_STAFFNUMBER,
         'Absence Type': hr_data_munge.HR_STATUS,
         'Calendar day': hr_data_munge.HR_TRANSACTION_DATE,
+    },
+    "zhr_time_attend_emp_3_auto": {
+        "Employee": hr_data_munge.HR_TRANSACTIONAL_STAFFNUMBER,
+        'Calendar day': hr_data_munge.HR_TRANSACTION_DATE,
     }
+}
+
+SAP_COLUMN_VALUE_OVERRIDES = {
+    "zhr_time_attend_emp_3_auto": (
+        (hr_data_munge.HR_STATUS, 'At work'),
+    )
 }
 
 HR_MASTER_TO_TRANSACTIONAL_REMAP = {
@@ -47,10 +57,14 @@ HR_TRANSACTIONAL_COLUMN_RENAME_DICT = {
 }
 
 
-def remap_columns(data_df, columns_remap):
+def remap_columns(data_df, columns_remap, broadcast_values):
     logging.debug(f"data_df.columns={data_df.columns}")
     data_df.rename(columns=columns_remap, inplace=True)
     logging.debug(f"data_df.columns={data_df.columns}")
+
+    # Setting any values which need to be set across all columns
+    for col, val in broadcast_values:
+        data_df[col] = val
 
     # Getting dates to conform to ISO8601
     data_df[hr_data_munge.HR_TRANSACTION_DATE] = pandas.to_datetime(data_df[hr_data_munge.HR_TRANSACTION_DATE],
@@ -118,7 +132,8 @@ if __name__ == "__main__":
         logging.info(f"Fetch[ed] SAP HR data '{sap_filename}'")
 
         logging.info(f"Remapp[ing] SAP HR data '{sap_filename}'")
-        remapped_df = remap_columns(hr_sap_df, sap_file_columns_remap)
+        sap_file_broadcast_values = SAP_COLUMN_VALUE_OVERRIDES.get(sap_file_suffix, [])
+        remapped_df = remap_columns(hr_sap_df, sap_file_columns_remap, sap_file_broadcast_values)
         logging.info(f"Remapp[ed] SAP HR data '{sap_filename}'")
 
         logging.info(f"Fill[ing] SAP HR data '{sap_filename}'")
