@@ -129,8 +129,12 @@ def calculate_metrics_dataframe(df, index_cols=INDEX_COLS):
     return metrics_df
 
 
-def select_latest_value(df, index_cols=INDEX_COLS):
+def select_latest_value(df, index_cols=INDEX_COLS, cut_off_date=None):
     df[DATE_COL] = pd.to_datetime(df[DATE_COL])
+
+    if cut_off_date:
+        df = df.query(f"{DATE_COL} <= @cut_off_date")
+
     filtered_df = df.copy().sort_values(
         by=DATE_COL
     ).drop_duplicates(
