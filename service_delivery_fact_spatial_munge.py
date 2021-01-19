@@ -13,6 +13,18 @@ SERVICE_DELIVERY_SPATIAL_FILE = "data/private/business_continuity_service_delive
 DATE_COL = "date"
 INDEX_COLS = ["resolution", "index", "feature"]
 
+BACKLOG_COL = "backlog"
+SERVICE_STANDARD_COL = "service_standard"
+SERVICE_STANDARD_WEIGHTING_COL = "service_standard_weighting"  # delta will be how many have been closed
+LONG_BACKLOG_COL = "long_backlog"
+LONG_BACKLOG_WEIGHTING_COL = "long_backlog_weighting"  # delta will be how many been opened
+
+METRICS_COLS = [BACKLOG_COL, SERVICE_STANDARD_COL, LONG_BACKLOG_COL, DATE_COL]
+DELTA_COLS = [SERVICE_STANDARD_COL, SERVICE_STANDARD_WEIGHTING_COL,
+              LONG_BACKLOG_COL, LONG_BACKLOG_WEIGHTING_COL,
+              DATE_COL]
+RELATIVE_DELTA_COLS = [BACKLOG_COL, ]
+
 DELTA_SUFFIX = "_delta"
 RELATIVE_SUFFIX = "_relative"
 
@@ -25,14 +37,15 @@ def calculate_metrics_by_hex(groupby_df):
     groupby_df = groupby_df.sort_values(by=DATE_COL)
     #logging.debug(f"groupby_df=\n{groupby_df}")
 
-    delta_df = groupby_df.diff(1)  # absolute change
-    rel_cols = [col for col in delta_df if col != DATE_COL]
+    delta_df = groupby_df[DELTA_COLS].diff(1)  # absolute change
+    delta_df[DATE_COL] = delta_df[DATE_COL].dt.days
     delta_relative_df = (
-                delta_df[rel_cols] / groupby_df[rel_cols].shift(1)  # relative change - delta divided by previous value
+                # relative change - delta divided by previous value
+                groupby_df[RELATIVE_DELTA_COLS].diff(1) / groupby_df[RELATIVE_DELTA_COLS].shift(1)
     )
 
     result_series = pandas.concat([
-        groupby_df.iloc[-1],
+        groupby_df[METRICS_COLS].iloc[-1],
         delta_df.add_suffix(DELTA_SUFFIX).iloc[-1],
         delta_relative_df.add_suffix(DELTA_SUFFIX).add_suffix(RELATIVE_SUFFIX).iloc[-1]
     ])
