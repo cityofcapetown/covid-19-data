@@ -5,7 +5,6 @@ import sys
 
 from db_utils import minio_utils
 import pandas
-from tqdm.auto import tqdm
 
 import hr_data_munge
 
@@ -44,7 +43,7 @@ def calculate_metrics_by_hex(groupby_df):
 
 def calculate_metrics(data_df):
     logging.debug(f"data_df=\n{data_df}")
-    grouped_df = data_df.groupby(INDEX_COLS).progress_apply(calculate_metrics_by_hex)
+    grouped_df = data_df.groupby(INDEX_COLS).apply(calculate_metrics_by_hex)
     logging.debug(f"grouped_df=\n{grouped_df}")
 
     return grouped_df
@@ -53,7 +52,6 @@ def calculate_metrics(data_df):
 if __name__ == "__main__":
     logging.basicConfig(level=logging.DEBUG,
                         format='%(asctime)s-%(funcName)s [%(levelname)s]: %(message)s')
-    tqdm.pandas()
 
     # Loading secrets
     SECRETS_PATH_VAR = "SECRETS_PATH"
