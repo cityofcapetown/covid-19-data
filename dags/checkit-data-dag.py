@@ -44,7 +44,7 @@ k8s_run_env = {
 }
 
 # airflow-workers' secrets
-secret_file = Secret('volume', '/secrets', 'wcgh-secret')
+secret_file = Secret('volume', '/secrets', 'airflow-workers-secret')
 
 # arguments for the k8s operator
 k8s_run_args = {
