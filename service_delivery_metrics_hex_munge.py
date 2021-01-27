@@ -138,7 +138,7 @@ if __name__ == "__main__":
     logging.info("Pivot[ing] dataframe")
     res7_pivot_df = service_delivery_metrics_munge.pivot_dataframe(res7_facts_annotated, INDEX_COLS)
     logging.info("Pivot[ed] dataframe")
-
+    
     logging.info("Calculat[ing] metric values")
     res7_calc_df = service_delivery_metrics_munge.calculate_metrics_dataframe(res7_pivot_df, INDEX_COLS)
     logging.info("Calculat[ed] metric values")
@@ -155,23 +155,6 @@ if __name__ == "__main__":
     logging.info("Dropp[ing] any entries where all metrics are NaNs")
     res7_combined = service_delivery_metrics_munge.drop_nas(res7_combined, INDEX_COLS)
     logging.info("Dropp[ed] any entries where all metrics are NaNs")
-    
-    # put the file in minio
-    logging.info(f"Push[ing] collected department metrics data to minio")
-    result = minio_utils.dataframe_to_minio(
-        res7_calc_df,
-        filename_prefix_override=f"{PRIVATE_PREFIX}{DEPT_SERVICE_METRICS_HEX_7}",
-        minio_bucket=COVID_BUCKET,
-        minio_key=secrets["minio"]["edge"]["access"],
-        minio_secret=secrets["minio"]["edge"]["secret"],
-        data_classification=EDGE_CLASSIFICATION,
-        data_versioning=False,
-        file_format="csv"
-    )
-
-    if not result:
-        logging.debug(f"Send[ing] data to minio failed")
-    logging.info(f"Push[ed] collected department metrics data to minio")
     
     # get top n request per hex
     logging.info(f"Filter[ing] to top {SELECT_TOP_N} codes per hex")
