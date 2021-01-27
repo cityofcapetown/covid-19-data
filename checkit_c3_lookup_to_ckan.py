@@ -15,7 +15,7 @@ import sharepoint_utils
 
 CHECKIT_C3_COL = "c3_tracking_number"
 
-C3_DATASET_NAME = "augmented-service-notifications"
+C3_DATASET_NAME = "sap-r3-connector.augmented-service-notifications"
 
 CHECKIT_C3_DATA_OUTPUT_FILE = 'c3-checkit-lookup-21-09-2020.csv'
 
@@ -41,7 +41,7 @@ def get_c3_data(minio_access, minio_secret):
         minio_bucket=C3_DATASET_NAME,
         minio_key=minio_access,
         minio_secret=minio_secret,
-        data_classification=minio_utils.DataClassification.CONFIDENTIAL,
+        data_classification=minio_utils.DataClassification.LAKE,
     )
 
 
@@ -97,7 +97,7 @@ if __name__ == '__main__':
 
     logging.info("G[etting] C3 data")
     service_notification_df = get_c3_data(
-        secrets["minio"]["confidential"]["access"], secrets["minio"]["confidential"]["secret"]
+        secrets["minio"]["lake"]["access"], secrets["minio"]["lake"]["secret"]
     )
     logging.info("G[ot] C3 data")
 

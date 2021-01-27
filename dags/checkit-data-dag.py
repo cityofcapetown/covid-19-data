@@ -35,16 +35,16 @@ dag = DAG(dag_name,
 
 # env variables for inside the k8s pod
 k8s_run_env = {
-    'SECRETS_PATH': '/secrets/wcgh-secrets.json',
+    'SECRETS_PATH': '/secrets/secrets.json',
     'COVID_19_DEPLOY_FILE': 'covid-19-data.zip',
     'COVID_19_DEPLOY_URL': 'https://ds2.capetown.gov.za/covid-19-data-deploy',
     'COVID_19_DATA_DIR': '/covid-19-data',
     'DB_UTILS_LOCATION': 'https://ds2.capetown.gov.za/db-utils',
-    'DB_UTILS_PKG': 'db_utils-0.3.2-py2.py3-none-any.whl'
+    'DB_UTILS_PKG': 'db_utils-0.3.6-py2.py3-none-any.whl'
 }
 
 # airflow-workers' secrets
-secret_file = Secret('volume', '/secrets', 'wcgh-secret')
+secret_file = Secret('volume', '/secrets', 'airflow-workers-secret')
 
 # arguments for the k8s operator
 k8s_run_args = {
