@@ -33,6 +33,7 @@ EDGE_CLASSIFICATION = minio_utils.DataClassification.EDGE
 LAKE_CLASSIFICATION = minio_utils.DataClassification.LAKE
 
 # outfiles
+DEPT_SERVICE_METRICS_HEX_7 = "business_continuity_service_delivery_city_hex_7_metrics"
 CITY_SERVICE_METRICS_JSON = "business_continuity_service_delivery_city_hex_top_n.geojson"
 
 # the number of request codes per hex to capture
@@ -137,7 +138,7 @@ if __name__ == "__main__":
     logging.info("Pivot[ing] dataframe")
     res7_pivot_df = service_delivery_metrics_munge.pivot_dataframe(res7_facts_annotated, INDEX_COLS)
     logging.info("Pivot[ed] dataframe")
-
+    
     logging.info("Calculat[ing] metric values")
     res7_calc_df = service_delivery_metrics_munge.calculate_metrics_dataframe(res7_pivot_df, INDEX_COLS)
     logging.info("Calculat[ed] metric values")
@@ -154,7 +155,23 @@ if __name__ == "__main__":
     logging.info("Dropp[ing] any entries where all metrics are NaNs")
     res7_combined = service_delivery_metrics_munge.drop_nas(res7_combined, INDEX_COLS)
     logging.info("Dropp[ed] any entries where all metrics are NaNs")
+    
+    # put the file in minio
+    logging.info(f"Push[ing] collected hex7 metrics data to minio")
+    result = minio_utils.dataframe_to_minio(
+        res7_combined,
+        filename_prefix_override=f"{PRIVATE_PREFIX}{DEPT_SERVICE_METRICS_HEX_7}",
+        minio_bucket=COVID_BUCKET,
+        minio_key=secrets["minio"]["edge"]["access"],
+        minio_secret=secrets["minio"]["edge"]["secret"],
+        data_classification=EDGE_CLASSIFICATION,
+        data_versioning=False,
+        file_format="csv")
 
+    if not result:
+        logging.debug(f"Send[ing] data to minio failed")
+    logging.info(f"Push[ed] collected hex7 metrics data to minio")
+    sys.exit()
     # get top n request per hex
     logging.info(f"Filter[ing] to top {SELECT_TOP_N} codes per hex")
     top_n_codes_by_hex = res7_combined.sort_values([OPEN_COUNT], ascending=False).groupby([HEX_INDEX_COL]).head(
