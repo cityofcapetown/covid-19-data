@@ -8,7 +8,7 @@ if (Sys.getenv("DB_UTILS_DIR") == "") {
   Sys.setenv("DB_UTILS_DIR" = "~/db-utils")
 }
 if (Sys.getenv("SECRETS_FILE") == "") {
-  Sys.setenv("SECRETS_FILE" = "~/secrets.json")
+  Sys.setenv("SECRETS_FILE" = "secrets.json")
 }
 
 # LOAD LIBRARIES ============================================================================
