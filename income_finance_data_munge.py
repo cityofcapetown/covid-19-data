@@ -24,7 +24,7 @@ def get_raw_finance_file(minio_key, minio_secret, minio_filename, minio_bucket):
      
     
 def get_cleaned_df(datafile):
-    raw_df = pandas.read_excel(datafile.name)
+    raw_df = pandas.read_excel(datafile.name, engine='openpyxl')
     
     # Setting columns
     raw_df.columns = raw_df.iloc[0]

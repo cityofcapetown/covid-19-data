@@ -25,7 +25,7 @@ ALL_STAFF_FILENAME_PATH = "data/private/hr_data_all_staff"
 
 
 def convert_xls_to_csv(xls_path, csv_path):
-    temp_df = pandas.read_excel(xls_path)
+    temp_df = pandas.read_excel(xls_path, engine='openpyxl')
     temp_df.to_csv(csv_path, index=False)
 
 

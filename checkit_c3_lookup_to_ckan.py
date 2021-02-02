@@ -25,7 +25,7 @@ def get_output_df(sharepoint_data):
         temp_data_file.write(sharepoint_data)
         temp_data_file.flush()
 
-        checkit_df = pandas.read_excel(temp_data_file.name)
+        checkit_df = pandas.read_excel(temp_data_file.name, engine='openpyxl')
         logging.debug(f"checkit_df.shape={checkit_df}")
 
     # Coercing checkit C3 ids into expected form - 12, zero-padded digits

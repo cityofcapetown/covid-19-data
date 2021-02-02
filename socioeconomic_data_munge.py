@@ -38,7 +38,7 @@ def get_socioeconomic_data(minio_access, minio_secret):
         )
         assert result
 
-        yield pandas.read_excel(temp_data_file.name, sheet_name=None)
+        yield pandas.read_excel(temp_data_file.name, sheet_name=None, engine='openpyxl')
 
 
 def flatten_socioeconomic_dict(socioeconomic_data_dict):
