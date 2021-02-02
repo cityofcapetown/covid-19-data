@@ -48,7 +48,7 @@ secret_file = Secret('volume', '/secrets', 'airflow-workers-secret')
 
 # arguments for the k8s operator
 k8s_run_args = {
-    "image": "cityofcapetown/datascience:python",
+    "image": "cityofcapetown/datascience:python@sha256:c5a8ec97e35e603aca281343111193a26a929d821b84c6678fb381f9e7bd08d7",
     "namespace": 'airflow-workers',
     "is_delete_operator_pod": True,
     "get_logs": True,

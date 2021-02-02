@@ -37,7 +37,7 @@ def setup_exchange_account(username, password,
     account = Account(
         primary_smtp_address=exchange_email,
         config=config, autodiscover=False,
-        access_type=DELEGATE
+        access_type=DELEGATE,
     )
 
     return account
