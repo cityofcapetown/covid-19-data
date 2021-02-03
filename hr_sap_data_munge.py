@@ -19,12 +19,12 @@ HR_MASTER_APPROVER_STAFFNUMBER_COLUMN = "Approver Staff No"
 SAP_FILES_COLUMN_MAP = {
     "zemp_q0001_v7_bics_covid_auto": {
         "Employee": hr_data_munge.HR_TRANSACTIONAL_STAFFNUMBER,
-        'Unnamed: 5': hr_data_munge.HR_STATUS,
+        'Unnamed: 4': hr_data_munge.HR_STATUS,
         'Calendar day': hr_data_munge.HR_TRANSACTION_DATE,
     },
     "zatt_2002_auto": {
         "Employee": hr_data_munge.HR_TRANSACTIONAL_STAFFNUMBER,
-        'Unnamed: 5': hr_data_munge.HR_STATUS,
+        'Unnamed: 4': hr_data_munge.HR_STATUS,
         'Date': hr_data_munge.HR_TRANSACTION_DATE,
     },
     "zemp_q0001_v7_bics_dash_auto": {
