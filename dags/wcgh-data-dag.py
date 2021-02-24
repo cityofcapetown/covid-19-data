@@ -1,6 +1,7 @@
 from airflow import DAG
 from airflow.contrib.operators.kubernetes_pod_operator import KubernetesPodOperator
 from airflow.contrib.kubernetes.secret import Secret
+from airflow.operators.latest_only_operator import LatestOnlyOperator
 
 from datetime import datetime, timedelta
 
@@ -70,7 +71,7 @@ def covid_19_data_task(task_name, task_kwargs={}):
         name=name,
         task_id=name,
         dag=dag,
-        execution_timeout=timedelta(hours=1),
+        execution_timeout=timedelta(hours=2),
 
         **run_args
     )
@@ -81,6 +82,9 @@ def covid_19_data_task(task_name, task_kwargs={}):
 # Defining tasks
 WCGH_FETCH_TASK = 'wcgh-data-fetch'
 wcgh_data_fetch_operator = covid_19_data_task(WCGH_FETCH_TASK)
+
+LATEST_ONLY = 'wcgh-data-latest-only'
+latest_only_operator = LatestOnlyOperator(task_id=LATEST_ONLY, dag=dag)
 
 WCGH_CKAN_PUSH_TASK = 'wcgh-ckan-data-push'
 wcgh_ckan_data_push_operator = covid_19_data_task(WCGH_CKAN_PUSH_TASK)
@@ -115,3 +119,9 @@ wcgh_data_fetch_operator >> spv_data_fetch_operator >> spv_data_munge_operator >
 wcgh_data_fetch_operator >> spv_subplace_munge_operator >> spv_ckan_push_operator
 wcgh_data_fetch_operator >> spv_metro_subd_munge_operator >> spv_double_time_munge_operator
 wcgh_data_fetch_operator >> spv_age_distribution_munge_operator
+
+latest_only_operator >> (wcgh_ckan_data_push_operator,
+                         spv_data_fetch_operator,
+                         spv_subplace_munge_operator,
+                         spv_metro_subd_munge_operator,
+                         spv_age_distribution_munge_operator)
