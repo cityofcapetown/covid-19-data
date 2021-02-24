@@ -24,7 +24,7 @@ startup_cmd = (
     "pip3 install $DB_UTILS_LOCATION/$DB_UTILS_PKG"
 )
 
-dag_interval = "@hourly"
+dag_interval = "0 */2 * * *"
 dag = DAG('covid-19-wcgh-data',
           start_date=DAG_STARTDATE,
           catchup=False,
@@ -120,8 +120,8 @@ wcgh_data_fetch_operator >> spv_subplace_munge_operator >> spv_ckan_push_operato
 wcgh_data_fetch_operator >> spv_metro_subd_munge_operator >> spv_double_time_munge_operator
 wcgh_data_fetch_operator >> spv_age_distribution_munge_operator
 
-latest_only_operator >> (wcgh_ckan_data_push_operator,
-                         spv_data_fetch_operator,
-                         spv_subplace_munge_operator,
-                         spv_metro_subd_munge_operator,
-                         spv_age_distribution_munge_operator)
+wcgh_data_fetch_operator >> latest_only_operator >> (wcgh_ckan_data_push_operator,
+                                                     spv_data_fetch_operator,
+                                                     spv_subplace_munge_operator,
+                                                     spv_metro_subd_munge_operator,
+                                                     spv_age_distribution_munge_operator)
