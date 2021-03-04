@@ -6,6 +6,7 @@ import tempfile
 
 from db_utils import minio_utils
 import pandas
+from pandas.errors import EmptyDataError
 
 BUCKET = 'covid'
 CLASSIFICATION = minio_utils.DataClassification.EDGE
@@ -187,7 +188,11 @@ def get_data_df(filename, minio_access, minio_secret):
         assert result
 
         logging.debug(f"Reading in raw data from '{temp_data_file.name}'...")
-        data_df = pandas.read_csv(temp_data_file)
+        try:
+            data_df = pandas.read_csv(temp_data_file)
+        except EmptyDataError as e:
+            logging.warning("Datafile is empty. Returning an empty dataframe.")
+            data_df = pandas.DataFrame()
 
     return data_df
 

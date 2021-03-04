@@ -131,6 +131,10 @@ if __name__ == "__main__":
                                               secrets["minio"]["edge"]["secret"])
         logging.info(f"Fetch[ed] SAP HR data '{sap_filename}'")
 
+        if hr_sap_df.empty:
+            logging.warning(f"'{sap_filename}' is empty, moving onto the next one...")
+            continue
+
         logging.info(f"Remapp[ing] SAP HR data '{sap_filename}'")
         sap_file_broadcast_values = SAP_COLUMN_VALUE_OVERRIDES.get(sap_file_suffix, [])
         remapped_df = remap_columns(hr_sap_df, sap_file_columns_remap, sap_file_broadcast_values)
