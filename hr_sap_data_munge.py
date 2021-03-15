@@ -19,12 +19,12 @@ HR_MASTER_APPROVER_STAFFNUMBER_COLUMN = "Approver Staff No"
 SAP_FILES_COLUMN_MAP = {
     "zemp_q0001_v7_bics_covid_auto": {
         "Employee": hr_data_munge.HR_TRANSACTIONAL_STAFFNUMBER,
-        'Unnamed: 5': hr_data_munge.HR_STATUS,
+        'Unnamed: 4': hr_data_munge.HR_STATUS,
         'Calendar day': hr_data_munge.HR_TRANSACTION_DATE,
     },
     "zatt_2002_auto": {
         "Employee": hr_data_munge.HR_TRANSACTIONAL_STAFFNUMBER,
-        'Unnamed: 5': hr_data_munge.HR_STATUS,
+        'Unnamed: 4': hr_data_munge.HR_STATUS,
         'Date': hr_data_munge.HR_TRANSACTION_DATE,
     },
     "zemp_q0001_v7_bics_dash_auto": {
@@ -130,6 +130,10 @@ if __name__ == "__main__":
                                               secrets["minio"]["edge"]["access"],
                                               secrets["minio"]["edge"]["secret"])
         logging.info(f"Fetch[ed] SAP HR data '{sap_filename}'")
+
+        if hr_sap_df.empty:
+            logging.warning(f"'{sap_filename}' is empty, moving onto the next one...")
+            continue
 
         logging.info(f"Remapp[ing] SAP HR data '{sap_filename}'")
         sap_file_broadcast_values = SAP_COLUMN_VALUE_OVERRIDES.get(sap_file_suffix, [])

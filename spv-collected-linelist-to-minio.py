@@ -9,6 +9,7 @@ import tempfile
 # external imports
 from db_utils import minio_utils
 import pandas as pd
+from pandas.errors import EmptyDataError
 
 
 __author__ = "Colin Anthony"
@@ -22,6 +23,9 @@ WC_FILE_OVERRIDE = f"data/private/spv_collected_latest"
 
 def minio_txt_to_df(minio_filename_override, minio_bucket, minio_key, minio_secret, data_classification):
     logging.debug("Pulling data from Minio bucket...")
+
+    cols = ["Export Date", "Date of Diagnosis", "Admission Date", "Date of ICU Admission", "Date of Death"]
+    df = pd.DataFrame(columns=cols)
     with tempfile.NamedTemporaryFile() as temp_data_file:
         try:
             result = minio_utils.minio_to_file(filename=temp_data_file.name,
@@ -31,17 +35,15 @@ def minio_txt_to_df(minio_filename_override, minio_bucket, minio_key, minio_secr
                                                minio_secret=minio_secret,
                                                data_classification=data_classification,
                                                )
-        except Exception as e:
-            logging.debug(f"Could not get data from minio bucket for {minio_filename_override}\nReturning empty dataframe")
-            cols = ["Export Date", "Date of Diagnosis", "Admission Date", "Date of ICU Admission", "Date of Death"]
-            df = pd.DataFrame(columns=cols)
-            return df
-            
-        else:
-            logging.debug(f"Reading in raw data from '{temp_data_file.name}'...") 
-            with open(temp_data_file.name,'rb') as source:
+            logging.debug(f"Reading in raw data from '{temp_data_file.name}'...")
+            with open(temp_data_file.name, 'rb') as source:
                 df = pd.read_csv(source, sep="\t", engine='c', encoding='ISO-8859-1')
-                return df
+
+        except EmptyDataError as e:
+            logging.debug(f"Could not get data from minio bucket for {minio_filename_override}\nReturning empty dataframe")
+
+        finally:
+            return df
 
 
 if __name__ == "__main__":

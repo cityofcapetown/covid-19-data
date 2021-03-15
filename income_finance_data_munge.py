@@ -10,7 +10,7 @@ import pandas
 
 
 def get_raw_finance_file(minio_key, minio_secret, minio_filename, minio_bucket):
-    with tempfile.NamedTemporaryFile() as temp_raw_file:
+    with tempfile.NamedTemporaryFile(suffix=".xlsx") as temp_raw_file:
         minio_utils.minio_to_file(
             filename=temp_raw_file.name,
             minio_filename_override=minio_filename,

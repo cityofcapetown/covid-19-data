@@ -27,7 +27,7 @@ def get_socioeconomic_data(minio_access, minio_secret):
     minio_path = f"{socioeconomic_sharepoint_to_minio.RESTRICTED_PREFIX}" \
                  f"{socioeconomic_sharepoint_to_minio.COVID_DATA_FILE}"
 
-    with tempfile.NamedTemporaryFile("rb") as temp_data_file:
+    with tempfile.NamedTemporaryFile("rb", suffix=".xlsx") as temp_data_file:
         result = minio_utils.minio_to_file(
             filename=temp_data_file.name,
             minio_filename_override=minio_path,
@@ -38,7 +38,7 @@ def get_socioeconomic_data(minio_access, minio_secret):
         )
         assert result
 
-        yield pandas.read_excel(temp_data_file.name, sheet_name=None)
+        yield pandas.read_excel(temp_data_file.name, sheet_name=None, engine='openpyxl')
 
 
 def flatten_socioeconomic_dict(socioeconomic_data_dict):

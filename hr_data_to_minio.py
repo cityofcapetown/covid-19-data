@@ -135,7 +135,9 @@ def get_excel_list_dfs(site_list, auth, proxy_dict, minio_access, minio_secret):
             ))
             if is_excel_file:
                 logging.debug(f"Generating df from downloaded file")
-                for data_sheet_name, raw_df in pandas.read_excel(local_path, sheet_name=None, dtype="object").items():
+                for data_sheet_name, raw_df in pandas.read_excel(local_path,
+                                                                 sheet_name=None, dtype="object",
+                                                                 engine='openpyxl').items():
                     logging.debug(f"Reading sheet'{data_sheet_name}'")
 
                     logging.debug(f"Setting '{SOURCE_COL_NAME}'='{file_url}', '{ACCESS_COL_NAME}'={access_timestamp}")

@@ -117,7 +117,10 @@ def generate_raw_doc_dfs(items) -> dict:
             email_data_dfs[data_file_prefix] = dfs + [data_df]
 
     data_dfs = {
-        data_file_prefix: pandas.concat([df for df in data_dfs if df is not None])
+        data_file_prefix: pandas.concat([
+            df if df is not None else pandas.DataFrame()
+            for df in data_dfs
+        ])
         for data_file_prefix, data_dfs in email_data_dfs.items()
     }
 

@@ -21,11 +21,11 @@ CHECKIT_C3_DATA_OUTPUT_FILE = 'c3-checkit-lookup-21-09-2020.csv'
 
 
 def get_output_df(sharepoint_data):
-    with tempfile.NamedTemporaryFile("r+b") as temp_data_file:
+    with tempfile.NamedTemporaryFile("r+b", suffix=".xlsx") as temp_data_file:
         temp_data_file.write(sharepoint_data)
         temp_data_file.flush()
 
-        checkit_df = pandas.read_excel(temp_data_file.name)
+        checkit_df = pandas.read_excel(temp_data_file.name, engine='openpyxl')
         logging.debug(f"checkit_df.shape={checkit_df}")
 
     # Coercing checkit C3 ids into expected form - 12, zero-padded digits

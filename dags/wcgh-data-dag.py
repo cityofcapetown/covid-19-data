@@ -1,6 +1,7 @@
 from airflow import DAG
 from airflow.contrib.operators.kubernetes_pod_operator import KubernetesPodOperator
 from airflow.contrib.kubernetes.secret import Secret
+from airflow.operators.latest_only_operator import LatestOnlyOperator
 
 from datetime import datetime, timedelta
 
@@ -23,7 +24,7 @@ startup_cmd = (
     "pip3 install $DB_UTILS_LOCATION/$DB_UTILS_PKG"
 )
 
-dag_interval = "@hourly"
+dag_interval = "0 */2 * * *"
 dag = DAG('covid-19-wcgh-data',
           start_date=DAG_STARTDATE,
           catchup=False,
@@ -38,7 +39,7 @@ k8s_run_env = {
     'COVID_19_DEPLOY_URL': 'https://ds2.capetown.gov.za/covid-19-data-deploy',
     'COVID_19_DATA_DIR': '/covid-19-data',
     'DB_UTILS_LOCATION': 'https://ds2.capetown.gov.za/db-utils',
-    'DB_UTILS_PKG': 'db_utils-0.3.2-py2.py3-none-any.whl'
+    'DB_UTILS_PKG': 'db_utils-0.3.7-py2.py3-none-any.whl'
 }
 
 # airflow-workers' secrets
@@ -46,7 +47,7 @@ secret_file = Secret('volume', '/secrets', 'wcgh-secret')
 
 # arguments for the k8s operator
 k8s_run_args = {
-    "image": "cityofcapetown/datascience:python",
+    "image": "cityofcapetown/datascience:python@sha256:c5a8ec97e35e603aca281343111193a26a929d821b84c6678fb381f9e7bd08d7",
     "namespace": 'airflow-workers',
     "is_delete_operator_pod": True,
     "get_logs": True,
@@ -70,7 +71,7 @@ def covid_19_data_task(task_name, task_kwargs={}):
         name=name,
         task_id=name,
         dag=dag,
-        execution_timeout=timedelta(hours=1),
+        execution_timeout=timedelta(hours=2),
 
         **run_args
     )
@@ -81,6 +82,9 @@ def covid_19_data_task(task_name, task_kwargs={}):
 # Defining tasks
 WCGH_FETCH_TASK = 'wcgh-data-fetch'
 wcgh_data_fetch_operator = covid_19_data_task(WCGH_FETCH_TASK)
+
+LATEST_ONLY = 'wcgh-data-latest-only'
+latest_only_operator = LatestOnlyOperator(task_id=LATEST_ONLY, dag=dag)
 
 WCGH_CKAN_PUSH_TASK = 'wcgh-ckan-data-push'
 wcgh_ckan_data_push_operator = covid_19_data_task(WCGH_CKAN_PUSH_TASK)
@@ -115,3 +119,9 @@ wcgh_data_fetch_operator >> spv_data_fetch_operator >> spv_data_munge_operator >
 wcgh_data_fetch_operator >> spv_subplace_munge_operator >> spv_ckan_push_operator
 wcgh_data_fetch_operator >> spv_metro_subd_munge_operator >> spv_double_time_munge_operator
 wcgh_data_fetch_operator >> spv_age_distribution_munge_operator
+
+wcgh_data_fetch_operator >> latest_only_operator >> (wcgh_ckan_data_push_operator,
+                                                     spv_data_fetch_operator,
+                                                     spv_subplace_munge_operator,
+                                                     spv_metro_subd_munge_operator,
+                                                     spv_age_distribution_munge_operator)

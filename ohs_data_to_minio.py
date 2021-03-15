@@ -17,7 +17,7 @@ RESTRICTED_PREFIX = "data/private/"
 
 
 def convert_xls_to_csv(xls_path, csv_path):
-    temp_df = pandas.read_excel(xls_path)
+    temp_df = pandas.read_excel(xls_path, engine='openpyxl')
 
     temp_df.columns = map(str.lower, temp_df.columns)
     temp_df.columns = temp_df.columns.str.replace(" ", "_")
