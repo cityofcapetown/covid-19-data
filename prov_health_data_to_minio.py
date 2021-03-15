@@ -18,6 +18,9 @@ FTP_HOSTNAME = "164.151.8.14"
 FTP_PORT = "5022"
 FTP_SYNC_DIR_NAME = 'WCGH_COCT'
 
+MIN_FILE_SIZE = 1024
+FETCH_WINDOW_SIZE = 90
+
 PROV_HEALTH_BACKUP_PREFIX = "data/staging/wcgh_backup/"
 RESTRICTED_PREFIX = "data/private/"
 BUCKET = 'covid'
@@ -61,6 +64,17 @@ def get_prov_files(sftp):
 
     # Sorting by modification time
     list_of_files.sort(key=lambda sftp_file_tuple: sftp_file_tuple[0].st_mtime)
+
+    # Filtering out empty files
+    logging.debug(f"( pre-filter): len(list_of_files)={len(list_of_files)}")
+    list_of_files = list(filter(
+        lambda sftp_file_tuple: sftp_file_tuple[0].st_size > MIN_FILE_SIZE,
+        list_of_files
+    ))
+    logging.debug(f"( post-filter): len(list_of_files)={len(list_of_files)}")
+
+    # Selecting more recent files
+    list_of_files = list_of_files[-1*FETCH_WINDOW_SIZE:]
 
     filename_list = ', '.join(map(
         lambda sftp_file_tuple: sftp_file_tuple[1], list_of_files
