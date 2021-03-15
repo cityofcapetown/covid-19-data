@@ -5,7 +5,7 @@ args = commandArgs(trailingOnly=TRUE)
 
 # SETENV FOR DAG COMPATIBILITY ===================================================================================
 if (Sys.getenv("DB_UTILS_DIR") == "") {
-  Sys.setenv("DB_UTILS_DIR" = "~/db-utils")
+  Sys.setenv("DB_UTILS_DIR" = "/home/jovyan/db-utils")
 }
 if (Sys.getenv("SECRETS_FILE") == "") {
   Sys.setenv("SECRETS_FILE" = "secrets.json")
@@ -105,6 +105,10 @@ minio_to_file(wc_case_data,
               minio_filename_override=wc_case_data)
 
 wc_all_cases <- read_tsv(wc_case_data) %>% dplyr::rename_all(list(~make.names(.)))
+
+if (nrow(wc_all_cases) ==  0) {
+  stop("The file from SPV appears to be empty.")
+}
 
 
 if (sum(is.na(wc_all_cases$Date.of.Diagnosis)) / nrow(wc_all_cases) >= 0.1) {
