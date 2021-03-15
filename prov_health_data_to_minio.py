@@ -19,6 +19,7 @@ FTP_PORT = "5022"
 FTP_SYNC_DIR_NAME = 'WCGH_COCT'
 
 MIN_FILE_SIZE = 1024
+FETCH_WINDOW_SIZE = 90
 
 PROV_HEALTH_BACKUP_PREFIX = "data/staging/wcgh_backup/"
 RESTRICTED_PREFIX = "data/private/"
@@ -71,6 +72,9 @@ def get_prov_files(sftp):
         list_of_files
     ))
     logging.debug(f"( post-filter): len(list_of_files)={len(list_of_files)}")
+
+    # Selecting more recent files
+    list_of_files = list_of_files[-1*FETCH_WINDOW_SIZE:]
 
     filename_list = ', '.join(map(
         lambda sftp_file_tuple: sftp_file_tuple[1], list_of_files
