@@ -160,10 +160,12 @@ if __name__ == "__main__":
 
     # ----------------------------------
     # get total time series
+    logging.info("Calculat[ing] top level aggregation")
     vaccination_totals_time_series = get_agg_totals(fully_vaccinated_df, staff_list_df)
     vaccination_totals_time_series[AGG_TYPE] = TOP_LEVEL
     vaccination_totals_time_series[AGG_TYPE_NAMES] = TOP_LEVEL
-
+    logging.info("Calculat[ing] top level aggregation")
+    
     collected_agg_df = vaccination_totals_time_series.copy()
     for i, agg_level in enumerate(AGG_LEVELS):
         logging.info("Aggregat[ing] vaccine total time series")
