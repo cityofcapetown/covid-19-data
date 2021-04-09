@@ -119,7 +119,6 @@ wcgh_data_fetch_operator >> spv_data_fetch_operator >> spv_data_munge_operator >
 wcgh_data_fetch_operator >> spv_subplace_munge_operator >> spv_ckan_push_operator
 wcgh_data_fetch_operator >> spv_metro_subd_munge_operator >> spv_double_time_munge_operator
 wcgh_data_fetch_operator >> spv_age_distribution_munge_operator
-
 wcgh_data_fetch_operator >> latest_only_operator >> (wcgh_ckan_data_push_operator,
                                                      spv_data_fetch_operator,
                                                      spv_subplace_munge_operator,
