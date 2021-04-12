@@ -1,8 +1,6 @@
 from airflow import DAG
 from airflow.contrib.operators.kubernetes_pod_operator import KubernetesPodOperator
 from airflow.contrib.kubernetes.secret import Secret
-from airflow.operators.latest_only_operator import LatestOnlyOperator
-
 from datetime import datetime, timedelta
 
 DAG_STARTDATE = datetime(2021, 3, 5)
@@ -24,13 +22,14 @@ startup_cmd = (
     "pip3 install $DB_UTILS_LOCATION/$DB_UTILS_PKG"
 )
 
-dag_interval = "0 */2 * * *"
-dag = DAG('covid-vaccine-data',
+dag_interval = timedelta(hours=1)
+dag_name = "covid-vaccine-data"
+dag = DAG(dag_name,
           start_date=DAG_STARTDATE,
           catchup=False,
           default_args=default_args,
           schedule_interval=dag_interval,
-          concurrency=2)
+          concurrency=1)
 
 # env variables for inside the k8s pod
 k8s_run_env = {
@@ -61,9 +60,9 @@ k8s_run_args = {
 
 def covid_19_data_task(task_name, task_kwargs={}):
     """Factory for k8sPodOperator"""
-    name = "covid-vaccine-data-{}".format(task_name)
+    name = f"{dag_name}-{task_name}"
     run_args = {**k8s_run_args.copy(), **task_kwargs}
-    run_cmd = "bash -c '{} && \"$COVID_19_DATA_DIR\"/bin/{}.sh'".format(startup_cmd, task_name)
+    run_cmd = f"bash -c '{startup_cmd} && \"$COVID_19_DATA_DIR\"/bin/{task_name}.sh'"
 
     operator = KubernetesPodOperator(
         cmds=["bash", "-cx"],
