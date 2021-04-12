@@ -19,6 +19,7 @@ startup_cmd = (
     "mkdir $COVID_19_DATA_DIR && "
     "curl $COVID_19_DEPLOY_URL/$COVID_19_DEPLOY_FILE -o $COVID_19_DATA_DIR/$COVID_19_DEPLOY_FILE && "
     "cd $COVID_19_DATA_DIR && unzip $COVID_19_DEPLOY_FILE && "
+    "pip install $PRETY_HTML_PKG && "
     "pip3 install $DB_UTILS_LOCATION/$DB_UTILS_PKG"
 )
 
@@ -38,7 +39,8 @@ k8s_run_env = {
     'COVID_19_DEPLOY_URL': 'https://ds2.capetown.gov.za/covid-19-data-deploy',
     'COVID_19_DATA_DIR': '/covid-19-data',
     'DB_UTILS_LOCATION': 'https://ds2.capetown.gov.za/db-utils',
-    'DB_UTILS_PKG': 'db_utils-0.4.0-py2.py3-none-any.whl'
+    'DB_UTILS_PKG': 'db_utils-0.4.0-py2.py3-none-any.whl',
+    'PRETY_HTML_PKG': 'pretty-html-table'
 }
 
 # airflow-workers' secrets
@@ -46,7 +48,7 @@ secret_file = Secret('volume', '/secrets', 'vaccine-data-secret')
 
 # arguments for the k8s operator
 k8s_run_args = {
-    "image": "cityofcapetown/datascience:python@sha256:491802742dabd1eb6c550d220b6d3f3e6ac4359b8ded3307416831583cbcdee9",
+    "image": "cityofcapetown/datascience:python@sha256:c5a8ec97e35e603aca281343111193a26a929d821b84c6678fb381f9e7bd08d7",
     "namespace": 'airflow-workers',
     "is_delete_operator_pod": True,
     "get_logs": True,
