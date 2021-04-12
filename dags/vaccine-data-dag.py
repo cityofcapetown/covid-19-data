@@ -1,7 +1,6 @@
 from airflow import DAG
 from airflow.contrib.operators.kubernetes_pod_operator import KubernetesPodOperator
 from airflow.contrib.kubernetes.secret import Secret
-from airflow.operators.latest_only_operator import LatestOnlyOperator
 
 from datetime import datetime, timedelta
 
@@ -24,13 +23,14 @@ startup_cmd = (
     "pip3 install $DB_UTILS_LOCATION/$DB_UTILS_PKG"
 )
 
-dag_interval = "0 */2 * * *"
-dag = DAG('covid-vaccine-data',
+dag_interval = timedelta(hours=1)
+dag_name = "covid-vaccine-data"
+dag = DAG(dag_name,
           start_date=DAG_STARTDATE,
           catchup=False,
           default_args=default_args,
           schedule_interval=dag_interval,
-          concurrency=2)
+          concurrency=1)
 
 # env variables for inside the k8s pod
 k8s_run_env = {
@@ -61,9 +61,9 @@ k8s_run_args = {
 
 def covid_19_data_task(task_name, task_kwargs={}):
     """Factory for k8sPodOperator"""
-    name = "covid-vaccine-data-{}".format(task_name)
+    name = f"{dag_name}-{task_name}"
     run_args = {**k8s_run_args.copy(), **task_kwargs}
-    run_cmd = "bash -c '{} && \"$COVID_19_DATA_DIR\"/bin/{}.sh'".format(startup_cmd, task_name)
+    run_cmd = f"bash -c '{startup_cmd} && \"$COVID_19_DATA_DIR\"/bin/{task_name}.sh'"
 
     operator = KubernetesPodOperator(
         cmds=["bash", "-cx"],
@@ -83,34 +83,14 @@ def covid_19_data_task(task_name, task_kwargs={}):
 VACCINE_FETCH_TASK = "vaccine-data-to-minio"
 vaccine_data_fetch_operator = covid_19_data_task(VACCINE_FETCH_TASK)
 
-VACCINE_SEQ_MUNGE = "vaccine-sequencing-munge"
-vaccine_seq_munge_operator = covid_19_data_task(VACCINE_SEQ_MUNGE)
-
-VACCINE_SEQ_AGG_TASK = "vaccine-sequencing-aggregation"
-vaccine_seq_agg_operator = covid_19_data_task(VACCINE_SEQ_AGG_TASK)
-
 VACCINE_ANN_HR_MUNGE_TASK = "vaccine-annotate-HR-munge"
 vaccine_ann_hr_munge_operator = covid_19_data_task(VACCINE_ANN_HR_MUNGE_TASK)
-
-VACCINE_ANN_NON_HR_MUNGE_TASK = "vaccine-annotate-non-HR-munge"
-vaccine_ann_non_hr_munge_operator = covid_19_data_task(VACCINE_ANN_NON_HR_MUNGE_TASK)
 
 VACCINE_REG_AGG_MUNGE_TASK = "vaccine-register-munge"
 vaccine_agg_munge_operator = covid_19_data_task(VACCINE_REG_AGG_MUNGE_TASK)
 
-VACCINE_REG_AGG_WILLING_MUNGE_TASK = "vaccine-register-willing-munge"
-vaccine_agg_willing_munge_operator = covid_19_data_task(VACCINE_REG_AGG_WILLING_MUNGE_TASK)
-
 VACCINE_TIME_SERIES_MUNGE_TASK = "vaccine-rollout-time-series"
 vaccine_time_series_munge_operator = covid_19_data_task(VACCINE_TIME_SERIES_MUNGE_TASK)
 
-VACCINE_TIME_SERIES_WILLING_MUNGE_TASK = "vaccine-rollout-willing-time-series"
-vaccine_time_series_willing_munge_operator = covid_19_data_task(VACCINE_TIME_SERIES_WILLING_MUNGE_TASK)
-
 # Dependencies
-vaccine_data_fetch_operator >> (vaccine_seq_munge_operator, vaccine_ann_hr_munge_operator)
-vaccine_seq_munge_operator >> vaccine_seq_agg_operator
-vaccine_ann_hr_munge_operator >> vaccine_ann_non_hr_munge_operator >> vaccine_agg_munge_operator
-vaccine_agg_munge_operator >> vaccine_time_series_munge_operator
-vaccine_seq_agg_operator >> vaccine_ann_non_hr_munge_operator >> vaccine_agg_willing_munge_operator
-vaccine_agg_willing_munge_operator >> vaccine_time_series_willing_munge_operator
+vaccine_data_fetch_operator >> vaccine_ann_hr_munge_operator >> vaccine_agg_munge_operator >> vaccine_time_series_munge_operator
