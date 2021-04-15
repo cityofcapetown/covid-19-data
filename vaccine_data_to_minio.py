@@ -178,7 +178,6 @@ def backup_to_full_df(bucket, prefix, data_classification):
 
     full_df = pandas.DataFrame(part_dict_gen)
 
-    print(full_df)
     return full_df.reset_index()
 
 
