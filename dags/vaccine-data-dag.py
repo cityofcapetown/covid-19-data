@@ -55,7 +55,7 @@ k8s_run_args = {
     "in_cluster": True,
     "secrets": [secret_file],
     "env_vars": k8s_run_env,
-    "image_pull_policy": "IfNotPresent",
+    "image_pull_policy": "Always",
     "startup_timeout_seconds": 60 * 30,
 }
 
