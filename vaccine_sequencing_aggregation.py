@@ -94,7 +94,7 @@ if __name__ == "__main__":
                         format='%(asctime)s-%(module)s.%(funcName)s [%(levelname)s]: %(message)s')
 
     # secrets env
-    SECRETS_PATH_VAR = "VACCINE_SECRETS"
+    SECRETS_PATH_VAR = "SECRETS_PATH"
 
     # Loading secrets
     if SECRETS_PATH_VAR not in os.environ:
