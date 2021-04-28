@@ -58,6 +58,9 @@ if __name__ == "__main__":
             data_classification=EDGE_CLASSIFICATION,
             reader=PARQUET_READER
         )
+        df[SUBDISTRICT] = df[SUBDISTRICT].str.replace("_", " ") 
+        df[SUBDISTRICT] = df[SUBDISTRICT].str.replace(" support", "", case=False) 
+        df[SUBDISTRICT] = df[SUBDISTRICT].str.replace("Mitchell's", "Mitchells", case=False)
         vax_register_dfs.append(df)
 
     # dataframes
@@ -130,7 +133,7 @@ if __name__ == "__main__":
         secrets["minio"]["edge"]["secret"],
         EDGE_CLASSIFICATION,
         filename_prefix_override=f"{TS_PREFIX}{OUTFILE_PREFIX}",
-        file_format="parquet",
+        file_format="csv",
         data_versioning=False
     )
     logging.info(f"Push[ed] data to mino for {OUTFILE_PREFIX}")

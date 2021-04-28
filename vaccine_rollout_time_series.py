@@ -6,6 +6,7 @@ import sys
 # external imports
 from db_utils import minio_utils
 import pandas as pd
+import numpy as np
 # local imports
 from vaccine_data_to_minio import COVID_BUCKET, EDGE_CLASSIFICATION
 from vaccine_sequencing_munge import (OUTPUT_PREFIX_ANN, OUTPUT_PREFIX_AGG, UNIQUE_STAFF_LIST_ANN, DIRECTORATE_COL,
@@ -77,7 +78,6 @@ def get_agg_timeseries(vacc_df, agg_col, staff_totals_df, staff_col):
 
     staff_agg_ts[VACCINATED_REL] = staff_agg_ts[VACCINATED_CUMSUM] / staff_agg_ts[TOTAL_STAFF]
     staff_agg_ts[AGG_TYPE_NAMES] = staff_agg_ts[agg_col]
-    #     staff_agg_ts.rename(columns={agg_col: AGG_TYPE_NAMES}, inplace=True)
     staff_agg_ts[AGG_TYPE] = agg_col
 
     return staff_agg_ts
@@ -126,11 +126,15 @@ if __name__ == "__main__":
             data_classification=EDGE_CLASSIFICATION,
             reader=reader
         )
+        df[SUBDISTRICT] = df[SUBDISTRICT].str.replace("_", " ") 
+        df[SUBDISTRICT] = df[SUBDISTRICT].str.replace(" support", "", case=False) 
+        df[SUBDISTRICT] = df[SUBDISTRICT].str.replace("Mitchell's", "Mitchells", case=False)
         vax_register_dfs.append(df)
-
+    
     # dataframes
     vaccine_register_agg_df, staff_list_df = vax_register_dfs
-
+    
+    
     # ----------------------------------
     # get J&J one dose vaccinations
     logging.info("Filter[ing] to J&J vaccinations")
@@ -189,7 +193,7 @@ if __name__ == "__main__":
         secrets["minio"]["edge"]["secret"],
         EDGE_CLASSIFICATION,
         filename_prefix_override=f"{TS_PREFIX}{OUTFILE_PREFIX}",
-        file_format="parquet",
+        file_format="csv",
         data_versioning=False
 
     )
