@@ -14,7 +14,7 @@ from vaccine_annotate_HR_munge import VAX_TYPE, VAX_DATE, DOSE_NO
 from vaccine_register_munge import J_AND_J_VACC
 from vaccine_register_willing_munge import VACCINE_REGISTER_AGG_WILLING
 from vaccine_rollout_time_series import (TS_PREFIX, OUTFILE_PREFIX, AGG_TYPE, AGG_TYPE_NAMES, TOTAL_STAFF,
-                                         VACCINATED, VACCINATED_CUMSUM, VACCINATED_REL, TOP_LEVEL,
+                                         VACCINATED, VACCINATED_CUMSUM, VACCINATED_REL, TOP_LEVEL, SUBDISTRICT,
                                          SECOND_DOSE, OUTOUT_COL_ORDER, AGG_LEVELS, get_agg_timeseries, get_agg_totals)
 
 # input settings
