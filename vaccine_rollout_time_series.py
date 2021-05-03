@@ -129,6 +129,7 @@ if __name__ == "__main__":
         df[SUBDISTRICT] = df[SUBDISTRICT].str.replace("_", " ") 
         df[SUBDISTRICT] = df[SUBDISTRICT].str.replace(" support", "", case=False) 
         df[SUBDISTRICT] = df[SUBDISTRICT].str.replace("Mitchell's", "Mitchells", case=False)
+        df[SUBDISTRICT] = df[SUBDISTRICT].str.replace("Nothern", "Northern", case=False)
         vax_register_dfs.append(df)
     
     # dataframes
