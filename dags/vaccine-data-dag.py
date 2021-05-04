@@ -23,7 +23,7 @@ startup_cmd = (
 )
 
 dag_interval = timedelta(hours=1)
-dag_name = "covid-vaccine-data"
+dag_name = "covid-19-vaccine-data"
 dag = DAG(dag_name,
           start_date=DAG_STARTDATE,
           catchup=False,
