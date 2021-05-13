@@ -20,6 +20,7 @@ startup_cmd = (
     "mkdir $COVID_19_DATA_DIR && "
     "curl $COVID_19_DEPLOY_URL/$COVID_19_DEPLOY_FILE -o $COVID_19_DATA_DIR/$COVID_19_DEPLOY_FILE && "
     "cd $COVID_19_DATA_DIR && unzip $COVID_19_DEPLOY_FILE && "
+    "pip3 install ${GEOSPATIAL_UTILS_LOCATION}/${GEOSPATIAL_UTILS_PKG} && "
     "pip3 install $DB_UTILS_LOCATION/$DB_UTILS_PKG"
 )
 
@@ -37,6 +38,8 @@ k8s_run_env = {
     'COVID_19_DEPLOY_FILE': 'covid-19-data.zip',
     'COVID_19_DEPLOY_URL': 'https://ds2.capetown.gov.za/covid-19-data-deploy',
     'COVID_19_DATA_DIR': '/covid-19-data',
+    'GEOSPATIAL_UTILS_LOCATION': 'https://ds2.capetown.gov.za/geospatial-utils',
+    'GEOSPATIAL_UTILS_PKG': "geospatial_utils-0.2-py3-none-any.whl",
     'DB_UTILS_LOCATION': 'https://ds2.capetown.gov.za/db-utils',
     'DB_UTILS_PKG': 'db_utils-0.3.7-py2.py3-none-any.whl'
 }
