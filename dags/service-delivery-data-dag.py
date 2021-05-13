@@ -91,5 +91,8 @@ spatial_data_fetch_operator = covid_19_data_task(SPATIAL_DATA_FETCH_TASK)
 SPATIAL_DATA_MUNGE_TASK = 'service-delivery-spatial-metrics-munge'
 spatial_data_munge_operator = covid_19_data_task(SPATIAL_DATA_MUNGE_TASK)
 
+AREA_DATA_MUNGE_TASK = "repos/covid-19-data/bin/service-delivery-area-metrics-munge"
+area_data_munge_operator = covid_19_data_task(AREA_DATA_MUNGE_TASK)
+
 # Dependencies
 spatial_data_fetch_operator >> spatial_data_munge_operator
