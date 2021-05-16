@@ -2,11 +2,7 @@ import json
 import logging
 import os
 import pathlib
-import re
 import sys
-import stat
-import tempfile
-import zipfile
 
 from cryptography.hazmat.backends import default_backend
 from cryptography.hazmat.primitives import hashes, serialization
@@ -15,7 +11,6 @@ import pandas
 from db_utils import minio_utils
 
 from hr_data_munge import HR_MASTER_FILENAME_PATH, BUCKET, HR_MASTER_STAFFNUMBER
-from prov_health_data_to_minio import FTP_HOSTNAME, FTP_PORT
 from prov_health_data_to_minio import get_sftp_client
 
 ID_COL = "ID number"
