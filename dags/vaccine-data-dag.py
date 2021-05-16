@@ -8,7 +8,7 @@ default_args = {
     'owner': 'airflow',
     'depends_on_past': False,
     'start_date': DAG_STARTDATE,
-    'email': ['colin.anthony2@capetown.gov.za'],
+    'email': ['colin.anthony2@capetown.gov.za', 'gordon.inggs@capetown.gov.za'],
     'email_on_failure': True,
     'email_on_retry': False,
     'retries': 2,
@@ -29,7 +29,7 @@ dag = DAG(dag_name,
           catchup=False,
           default_args=default_args,
           schedule_interval=dag_interval,
-          concurrency=1)
+          concurrency=2)
 
 # env variables for inside the k8s pod
 k8s_run_env = {
@@ -81,6 +81,9 @@ def covid_19_data_task(task_name, task_kwargs={}):
 # Defining tasks
 VACCINE_FETCH_TASK = "vaccine-data-to-minio"
 vaccine_data_fetch_operator = covid_19_data_task(VACCINE_FETCH_TASK)
+
+VACCINE_STAFF_PUSH_TASK = "vaccine-staff-data-to-wcgh"
+vaccine_staff_data_push_operator = covid_19_data_task(VACCINE_STAFF_PUSH_TASK)
 
 VACCINE_SEQ_MUNGE = "vaccine-sequencing-munge"
 vaccine_seq_munge_operator = covid_19_data_task(VACCINE_SEQ_MUNGE)
