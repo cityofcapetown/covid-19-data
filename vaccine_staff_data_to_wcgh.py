@@ -24,7 +24,7 @@ def _encrypt_data(hr_df, salt):
     encrypted_df = pandas.DataFrame({
         encrypted_col: hr_df[col].apply(
             lambda id_val: hashlib.sha256(
-                f"{float(id_val):.0f}{salt}".encode()
+                f"{float(id_val):013.0f}{salt}".encode()
             ).hexdigest() if pandas.notna(id_val) else None
         )
         for col, encrypted_col in ((HR_MASTER_STAFFNUMBER, STAFFNUMBER_ENCRYPTED_COL),
